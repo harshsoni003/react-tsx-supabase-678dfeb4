@@ -6,8 +6,8 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { User } from '@supabase/supabase-js';
-import UserHeader from '@/components/UserHeader';
-import AuthenticatedView from '@/components/AuthenticatedView';
+import DashboardLayout from '@/components/dashboard/DashboardLayout';
+import DashboardContent from '@/components/dashboard/DashboardContent';
 import UnauthenticatedView from '@/components/UnauthenticatedView';
 
 const Index = () => {
@@ -57,21 +57,19 @@ const Index = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      <div className="min-h-screen flex items-center justify-center bg-[#F5F7FA]">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#3B82F6]"></div>
       </div>
     );
   }
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      <div className="container mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-12">
-          <h1 className="text-3xl font-bold text-gray-900">Welcome to Our App</h1>
-          {user ? (
-            <UserHeader user={user} profile={profile} onSignOut={handleSignOut} />
-          ) : (
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+        <div className="container mx-auto px-4 py-8">
+          {/* Header */}
+          <div className="flex justify-between items-center mb-12">
+            <h1 className="text-3xl font-bold text-gray-900">Voice Agent Dashboard</h1>
             <div className="space-x-2">
               <Link to="/signin">
                 <Button variant="outline">Sign In</Button>
@@ -80,19 +78,21 @@ const Index = () => {
                 <Button>Sign Up</Button>
               </Link>
             </div>
-          )}
-        </div>
+          </div>
 
-        {/* Main Content */}
-        <div className="max-w-4xl mx-auto">
-          {user ? (
-            <AuthenticatedView user={user} profile={profile} />
-          ) : (
+          {/* Main Content */}
+          <div className="max-w-4xl mx-auto">
             <UnauthenticatedView />
-          )}
+          </div>
         </div>
       </div>
-    </div>
+    );
+  }
+
+  return (
+    <DashboardLayout user={user} profile={profile} onSignOut={handleSignOut}>
+      <DashboardContent />
+    </DashboardLayout>
   );
 };
 
