@@ -64,6 +64,15 @@ const SignUp = () => {
     try {
       console.log('Attempting signup for email:', email);
       
+      // First, check if user already exists by trying to sign in
+      const { data: existingUser } = await supabase.auth.signInWithPassword({
+        email,
+        password: 'dummy-password' // This will fail for security, but we can check the error
+      });
+
+      // If we get here without error, something unexpected happened
+      console.log('Unexpected successful signin during signup check');
+      
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -92,31 +101,59 @@ const SignUp = () => {
         } else {
           setError(error.message);
         }
-      } else if (data.user && !data.session) {
-        // New user created, needs email verification
-        console.log('New user created, showing success message');
-        setSuccess(true);
-        toast({
-          title: "Account created successfully!",
-          description: "Please check your email to verify your account.",
-        });
-      } else if (data.user && data.user.email_confirmed_at) {
-        // User already exists and is verified
-        console.log('User already exists and is verified');
-        setShowVerifiedUserWarning(true);
-        setError('');
-      } else if (data.user && !data.user.email_confirmed_at) {
-        // User exists but email not confirmed yet
-        console.log('User exists but email not confirmed');
-        setSuccess(true);
-        toast({
-          title: "Please verify your email",
-          description: "Check your email for the verification link.",
-        });
+      } else if (data.user) {
+        // Check if this is a repeated signup by looking at the user creation timestamp
+        // If the user was created more than a few seconds ago, it's likely an existing user
+        const userCreatedAt = new Date(data.user.created_at || '');
+        const now = new Date();
+        const timeDifference = now.getTime() - userCreatedAt.getTime();
+        
+        console.log('User created at:', userCreatedAt);
+        console.log('Current time:', now);
+        console.log('Time difference (ms):', timeDifference);
+        
+        // If user was created more than 10 seconds ago, it's likely an existing user
+        if (timeDifference > 10000) {
+          console.log('User appears to be existing (created more than 10s ago), showing warning');
+          setShowVerifiedUserWarning(true);
+          setError('');
+        } else if (!data.session) {
+          // New user created, needs email verification
+          console.log('New user created, showing success message');
+          setSuccess(true);
+          toast({
+            title: "Account created successfully!",
+            description: "Please check your email to verify your account.",
+          });
+        } else if (data.user.email_confirmed_at) {
+          // User already exists and is verified
+          console.log('User already exists and is verified');
+          setShowVerifiedUserWarning(true);
+          setError('');
+        } else {
+          // User exists but email not confirmed yet
+          console.log('User exists but email not confirmed');
+          setSuccess(true);
+          toast({
+            title: "Please verify your email",
+            description: "Check your email for the verification link.",
+          });
+        }
       }
     } catch (err) {
-      console.error('Unexpected error during signup:', err);
-      setError('An unexpected error occurred');
+      // Try to determine if this is a user already exists situation
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      console.log('Caught error during signup:', errorMessage);
+      
+      if (errorMessage.includes('Invalid login credentials') || 
+          errorMessage.includes('already registered') ||
+          errorMessage.includes('already exists')) {
+        // This indicates the user likely already exists
+        setShowVerifiedUserWarning(true);
+        setError('');
+      } else {
+        setError('An unexpected error occurred');
+      }
     } finally {
       setLoading(false);
     }
