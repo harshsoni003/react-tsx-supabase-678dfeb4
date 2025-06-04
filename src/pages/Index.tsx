@@ -1,16 +1,18 @@
-
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { useUserProfile } from '@/hooks/useUserProfile';
 import { User } from '@supabase/supabase-js';
-import { LogOut, User as UserIcon } from 'lucide-react';
+import { LogOut, User as UserIcon, Shield } from 'lucide-react';
 
 const Index = () => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const { profile, loading: profileLoading } = useUserProfile(user);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -71,8 +73,14 @@ const Index = () => {
               <div className="flex items-center space-x-2">
                 <UserIcon className="w-5 h-5 text-gray-600" />
                 <span className="text-gray-700">
-                  {user.user_metadata?.username || user.email}
+                  {profile?.username || user.email}
                 </span>
+                {profile?.role === 'admin' && (
+                  <Badge variant="secondary" className="bg-red-100 text-red-700 border-red-200">
+                    <Shield className="w-3 h-3 mr-1" />
+                    Admin
+                  </Badge>
+                )}
               </div>
               <Button onClick={handleSignOut} variant="outline" size="sm">
                 <LogOut className="w-4 h-4 mr-2" />
@@ -96,7 +104,15 @@ const Index = () => {
           {user ? (
             <Card className="shadow-xl">
               <CardHeader>
-                <CardTitle className="text-2xl">Welcome back!</CardTitle>
+                <CardTitle className="text-2xl flex items-center space-x-2">
+                  <span>Welcome back!</span>
+                  {profile?.role === 'admin' && (
+                    <Badge variant="secondary" className="bg-red-100 text-red-700 border-red-200">
+                      <Shield className="w-3 h-3 mr-1" />
+                      Admin
+                    </Badge>
+                  )}
+                </CardTitle>
                 <CardDescription>
                   You are successfully signed in to your account.
                 </CardDescription>
@@ -107,7 +123,8 @@ const Index = () => {
                     <h3 className="font-semibold text-gray-900 mb-2">Account Information</h3>
                     <div className="space-y-2 text-sm">
                       <p><strong>Email:</strong> {user.email}</p>
-                      <p><strong>Username:</strong> {user.user_metadata?.username || 'Not set'}</p>
+                      <p><strong>Username:</strong> {profile?.username || 'Not set'}</p>
+                      <p><strong>Role:</strong> {profile?.role || 'Loading...'}</p>
                       <p><strong>Account created:</strong> {new Date(user.created_at).toLocaleDateString()}</p>
                       <p><strong>Email verified:</strong> {user.email_confirmed_at ? 'Yes' : 'No'}</p>
                     </div>
@@ -117,6 +134,18 @@ const Index = () => {
                     <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-lg">
                       <p className="text-yellow-800 text-sm">
                         <strong>Please verify your email:</strong> Check your inbox for a verification email to complete your account setup.
+                      </p>
+                    </div>
+                  )}
+
+                  {profile?.role === 'admin' && (
+                    <div className="bg-red-50 border border-red-200 p-4 rounded-lg">
+                      <div className="flex items-center space-x-2 mb-2">
+                        <Shield className="w-4 h-4 text-red-600" />
+                        <h4 className="font-semibold text-red-800">Administrator Access</h4>
+                      </div>
+                      <p className="text-red-700 text-sm">
+                        You have administrator privileges. You can access advanced features and manage the application.
                       </p>
                     </div>
                   )}
