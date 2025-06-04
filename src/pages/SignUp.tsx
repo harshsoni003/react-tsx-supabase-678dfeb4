@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -68,6 +67,8 @@ const SignUp = () => {
     }
 
     try {
+      console.log('Attempting signup for email:', email);
+      
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -80,24 +81,46 @@ const SignUp = () => {
         }
       });
 
+      console.log('Signup response:', { data, error });
+
       if (error) {
-        if (error.message.includes('already registered') || error.message.includes('User already registered')) {
+        console.log('Signup error:', error.message);
+        
+        // Check for various "user already exists" error messages
+        if (error.message.includes('already registered') || 
+            error.message.includes('User already registered') ||
+            error.message.includes('already exists') ||
+            error.message.includes('user_repeated_signup')) {
+          console.log('Setting verified user warning to true');
           setShowVerifiedUserWarning(true);
           setError('');
         } else {
           setError(error.message);
         }
       } else if (data.user && !data.session) {
+        // New user created, needs email verification
+        console.log('New user created, showing success message');
         setSuccess(true);
         toast({
           title: "Account created successfully!",
           description: "Please check your email to verify your account.",
         });
       } else if (data.user && data.user.email_confirmed_at) {
+        // User already exists and is verified
+        console.log('User already exists and is verified');
         setShowVerifiedUserWarning(true);
         setError('');
+      } else if (data.user && !data.user.email_confirmed_at) {
+        // User exists but email not confirmed yet
+        console.log('User exists but email not confirmed');
+        setSuccess(true);
+        toast({
+          title: "Please verify your email",
+          description: "Check your email for the verification link.",
+        });
       }
     } catch (err) {
+      console.error('Unexpected error during signup:', err);
       setError('An unexpected error occurred');
     } finally {
       setLoading(false);
