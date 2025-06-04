@@ -2,13 +2,13 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { User } from '@supabase/supabase-js';
-import { LogOut, User as UserIcon, Shield, Crown } from 'lucide-react';
+import UserHeader from '@/components/UserHeader';
+import AuthenticatedView from '@/components/AuthenticatedView';
+import UnauthenticatedView from '@/components/UnauthenticatedView';
 
 const Index = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -70,30 +70,7 @@ const Index = () => {
         <div className="flex justify-between items-center mb-12">
           <h1 className="text-3xl font-bold text-gray-900">Welcome to Our App</h1>
           {user ? (
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2">
-                <UserIcon className="w-5 h-5 text-gray-600" />
-                <span className="text-gray-700">
-                  {profile?.username || user.email}
-                </span>
-                {profile?.role === 'admin' && (
-                  <Badge variant="secondary" className="bg-red-100 text-red-700 border-red-200">
-                    <Shield className="w-3 h-3 mr-1" />
-                    Admin
-                  </Badge>
-                )}
-                {profile?.vip_access && (
-                  <Badge variant="secondary" className="bg-yellow-100 text-yellow-700 border-yellow-200">
-                    <Crown className="w-3 h-3 mr-1" />
-                    VIP
-                  </Badge>
-                )}
-              </div>
-              <Button onClick={handleSignOut} variant="outline" size="sm">
-                <LogOut className="w-4 h-4 mr-2" />
-                Sign Out
-              </Button>
-            </div>
+            <UserHeader user={user} profile={profile} onSignOut={handleSignOut} />
           ) : (
             <div className="space-x-2">
               <Link to="/signin">
@@ -109,130 +86,9 @@ const Index = () => {
         {/* Main Content */}
         <div className="max-w-4xl mx-auto">
           {user ? (
-            <Card className="shadow-xl">
-              <CardHeader>
-                <CardTitle className="text-2xl flex items-center space-x-2">
-                  <span>Welcome back!</span>
-                  {profile?.role === 'admin' && (
-                    <Badge variant="secondary" className="bg-red-100 text-red-700 border-red-200">
-                      <Shield className="w-3 h-3 mr-1" />
-                      Admin
-                    </Badge>
-                  )}
-                  {profile?.vip_access && (
-                    <Badge variant="secondary" className="bg-yellow-100 text-yellow-700 border-yellow-200">
-                      <Crown className="w-3 h-3 mr-1" />
-                      VIP
-                    </Badge>
-                  )}
-                </CardTitle>
-                <CardDescription>
-                  You are successfully signed in to your account.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <h3 className="font-semibold text-gray-900 mb-2">Account Information</h3>
-                    <div className="space-y-2 text-sm">
-                      <p><strong>Email:</strong> {user.email}</p>
-                      <p><strong>Username:</strong> {profile?.username || 'Not set'}</p>
-                      <p><strong>Role:</strong> {profile?.role || 'Loading...'}</p>
-                      <p><strong>VIP Access:</strong> {profile?.vip_access ? 'Yes' : 'No'}</p>
-                      <p><strong>Account created:</strong> {new Date(user.created_at).toLocaleDateString()}</p>
-                      <p><strong>Email verified:</strong> {user.email_confirmed_at ? 'Yes' : 'No'}</p>
-                    </div>
-                  </div>
-                  
-                  {!user.email_confirmed_at && (
-                    <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-lg">
-                      <p className="text-yellow-800 text-sm">
-                        <strong>Please verify your email:</strong> Check your inbox for a verification email to complete your account setup.
-                      </p>
-                    </div>
-                  )}
-
-                  {profile?.role === 'admin' && (
-                    <div className="bg-red-50 border border-red-200 p-4 rounded-lg">
-                      <div className="flex items-center space-x-2 mb-2">
-                        <Shield className="w-4 h-4 text-red-600" />
-                        <h4 className="font-semibold text-red-800">Administrator Access</h4>
-                      </div>
-                      <p className="text-red-700 text-sm">
-                        You have administrator privileges. You can access advanced features and manage the application.
-                      </p>
-                    </div>
-                  )}
-
-                  {profile?.vip_access && (
-                    <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-lg">
-                      <div className="flex items-center space-x-2 mb-2">
-                        <Crown className="w-4 h-4 text-yellow-600" />
-                        <h4 className="font-semibold text-yellow-800">VIP Access</h4>
-                      </div>
-                      <p className="text-yellow-700 text-sm">
-                        You have VIP access! Enjoy exclusive features and premium benefits.
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+            <AuthenticatedView user={user} profile={profile} />
           ) : (
-            <div className="text-center space-y-8">
-              <Card className="shadow-xl">
-                <CardHeader>
-                  <CardTitle className="text-2xl">Get Started Today</CardTitle>
-                  <CardDescription>
-                    Join thousands of users who trust our secure authentication system.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div className="space-y-4">
-                      <h3 className="font-semibold text-lg">New User?</h3>
-                      <p className="text-gray-600 text-sm">
-                        Create your account with email verification and secure password requirements.
-                      </p>
-                      <Link to="/signup">
-                        <Button className="w-full" size="lg">
-                          Create Account
-                        </Button>
-                      </Link>
-                    </div>
-                    <div className="space-y-4">
-                      <h3 className="font-semibold text-lg">Existing User?</h3>
-                      <p className="text-gray-600 text-sm">
-                        Sign in to your account or reset your password if you've forgotten it.
-                      </p>
-                      <Link to="/signin">
-                        <Button variant="outline" className="w-full" size="lg">
-                          Sign In
-                        </Button>
-                      </Link>
-                    </div>
-                  </div>
-                  
-                  <div className="pt-6 border-t">
-                    <h3 className="font-semibold text-lg mb-4">Features</h3>
-                    <div className="grid md:grid-cols-3 gap-4 text-sm">
-                      <div className="text-center p-4 bg-blue-50 rounded-lg">
-                        <h4 className="font-medium text-blue-900 mb-2">Secure Authentication</h4>
-                        <p className="text-blue-700">Industry-standard security with email verification</p>
-                      </div>
-                      <div className="text-center p-4 bg-green-50 rounded-lg">
-                        <h4 className="font-medium text-green-900 mb-2">Google Sign-In</h4>
-                        <p className="text-green-700">Quick and easy authentication with your Google account</p>
-                      </div>
-                      <div className="text-center p-4 bg-purple-50 rounded-lg">
-                        <h4 className="font-medium text-purple-900 mb-2">Password Recovery</h4>
-                        <p className="text-purple-700">Easy password reset via email verification</p>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+            <UnauthenticatedView />
           )}
         </div>
       </div>
