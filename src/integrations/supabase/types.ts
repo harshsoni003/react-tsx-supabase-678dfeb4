@@ -19,6 +19,7 @@ export type Database = {
           role: string
           updated_at: string
           username: string
+          vip_access: boolean
         }
         Insert: {
           avatar_url?: string | null
@@ -29,6 +30,7 @@ export type Database = {
           role?: string
           updated_at?: string
           username: string
+          vip_access?: boolean
         }
         Update: {
           avatar_url?: string | null
@@ -39,6 +41,7 @@ export type Database = {
           role?: string
           updated_at?: string
           username?: string
+          vip_access?: boolean
         }
         Relationships: []
       }

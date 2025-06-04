@@ -12,6 +12,7 @@ interface UserProfile {
   avatar_url: string | null;
   created_at: string;
   updated_at: string;
+  vip_access: boolean;
 }
 
 export const useUserProfile = (user: User | null) => {

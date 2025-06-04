@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -7,7 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { User } from '@supabase/supabase-js';
-import { LogOut, User as UserIcon, Shield } from 'lucide-react';
+import { LogOut, User as UserIcon, Shield, Crown } from 'lucide-react';
 
 const Index = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -81,6 +82,12 @@ const Index = () => {
                     Admin
                   </Badge>
                 )}
+                {profile?.vip_access && (
+                  <Badge variant="secondary" className="bg-yellow-100 text-yellow-700 border-yellow-200">
+                    <Crown className="w-3 h-3 mr-1" />
+                    VIP
+                  </Badge>
+                )}
               </div>
               <Button onClick={handleSignOut} variant="outline" size="sm">
                 <LogOut className="w-4 h-4 mr-2" />
@@ -112,6 +119,12 @@ const Index = () => {
                       Admin
                     </Badge>
                   )}
+                  {profile?.vip_access && (
+                    <Badge variant="secondary" className="bg-yellow-100 text-yellow-700 border-yellow-200">
+                      <Crown className="w-3 h-3 mr-1" />
+                      VIP
+                    </Badge>
+                  )}
                 </CardTitle>
                 <CardDescription>
                   You are successfully signed in to your account.
@@ -125,6 +138,7 @@ const Index = () => {
                       <p><strong>Email:</strong> {user.email}</p>
                       <p><strong>Username:</strong> {profile?.username || 'Not set'}</p>
                       <p><strong>Role:</strong> {profile?.role || 'Loading...'}</p>
+                      <p><strong>VIP Access:</strong> {profile?.vip_access ? 'Yes' : 'No'}</p>
                       <p><strong>Account created:</strong> {new Date(user.created_at).toLocaleDateString()}</p>
                       <p><strong>Email verified:</strong> {user.email_confirmed_at ? 'Yes' : 'No'}</p>
                     </div>
@@ -146,6 +160,18 @@ const Index = () => {
                       </div>
                       <p className="text-red-700 text-sm">
                         You have administrator privileges. You can access advanced features and manage the application.
+                      </p>
+                    </div>
+                  )}
+
+                  {profile?.vip_access && (
+                    <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-lg">
+                      <div className="flex items-center space-x-2 mb-2">
+                        <Crown className="w-4 h-4 text-yellow-600" />
+                        <h4 className="font-semibold text-yellow-800">VIP Access</h4>
+                      </div>
+                      <p className="text-yellow-700 text-sm">
+                        You have VIP access! Enjoy exclusive features and premium benefits.
                       </p>
                     </div>
                   )}
