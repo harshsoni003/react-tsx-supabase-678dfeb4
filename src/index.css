@@ -105,3 +105,9 @@
 .font-inter {
   font-family: 'Inter', sans-serif;
 }
+
+@keyframes border-beam {
+  100% {
+    offset-distance: 100%;
+  }
+}
