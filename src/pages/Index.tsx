@@ -8,11 +8,20 @@ import { useUserProfile } from '@/hooks/useUserProfile';
 import { User } from '@supabase/supabase-js';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import DashboardContent from '@/components/dashboard/DashboardContent';
-import UnauthenticatedView from '@/components/UnauthenticatedView';
+import HeroSection from '@/components/landing/HeroSection';
+import FeaturesSection from '@/components/landing/FeaturesSection';
+import ServicesSection from '@/components/landing/ServicesSection';
+import Footer from '@/components/landing/Footer';
+import TalkWithBotButton from '@/components/landing/TalkWithBotButton';
+import CreateAgentModal from '@/components/landing/CreateAgentModal';
+import VoiceChatModal from '@/components/landing/VoiceChatModal';
+import { Mic } from 'lucide-react';
 
 const Index = () => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showVoiceChat, setShowVoiceChat] = useState(false);
   const { profile, loading: profileLoading } = useUserProfile(user);
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -55,6 +64,20 @@ const Index = () => {
     }
   };
 
+  const handleCreateAgent = () => {
+    if (user) {
+      // If user is logged in, go to dashboard or agent creation page
+      navigate('/clients');
+    } else {
+      // If not logged in, show modal
+      setShowCreateModal(true);
+    }
+  };
+
+  const handleTalkWithBot = () => {
+    setShowVoiceChat(true);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#F5F7FA]">
@@ -63,36 +86,64 @@ const Index = () => {
     );
   }
 
-  if (!user) {
+  if (user) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-        <div className="container mx-auto px-4 py-8">
-          {/* Header */}
-          <div className="flex justify-between items-center mb-12">
-            <h1 className="text-3xl font-bold text-gray-900">Voice Agent Dashboard</h1>
-            <div className="space-x-2">
-              <Link to="/signin">
-                <Button variant="outline">Sign In</Button>
-              </Link>
-              <Link to="/signup">
-                <Button>Sign Up</Button>
-              </Link>
-            </div>
-          </div>
-
-          {/* Main Content */}
-          <div className="max-w-4xl mx-auto">
-            <UnauthenticatedView />
-          </div>
-        </div>
-      </div>
+      <DashboardLayout user={user} profile={profile} onSignOut={handleSignOut}>
+        <DashboardContent />
+      </DashboardLayout>
     );
   }
 
   return (
-    <DashboardLayout user={user} profile={profile} onSignOut={handleSignOut}>
-      <DashboardContent />
-    </DashboardLayout>
+    <div className="min-h-screen bg-white">
+      {/* Navigation Header */}
+      <nav className="fixed top-0 w-full bg-white/95 backdrop-blur-sm border-b border-gray-200 z-40">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center">
+              <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg flex items-center justify-center mr-3">
+                <Mic className="w-5 h-5 text-white" />
+              </div>
+              <span className="text-xl font-bold text-gray-900">Voice Bolt</span>
+            </div>
+            <div className="flex items-center space-x-4">
+              <Link to="/signin">
+                <Button variant="outline" className="rounded-full">Sign In</Button>
+              </Link>
+              <Link to="/signup">
+                <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-full">
+                  Get Started
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </nav>
+
+      {/* Main Content */}
+      <main className="pt-16">
+        <HeroSection 
+          onCreateAgent={handleCreateAgent}
+          onTalkWithBot={handleTalkWithBot}
+        />
+        <FeaturesSection onCreateAgent={handleCreateAgent} />
+        <ServicesSection />
+        <Footer />
+      </main>
+
+      {/* Fixed Talk Button */}
+      <TalkWithBotButton onClick={handleTalkWithBot} />
+
+      {/* Modals */}
+      <CreateAgentModal 
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+      />
+      <VoiceChatModal 
+        isOpen={showVoiceChat}
+        onClose={() => setShowVoiceChat(false)}
+      />
+    </div>
   );
 };
 
