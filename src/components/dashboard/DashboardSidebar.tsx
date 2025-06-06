@@ -5,7 +5,8 @@ import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 
 const navigationItems = [
-  { name: 'Dashboard', icon: Home, href: '/', active: false },
+  { name: 'Dashboard', icon: Home, href: '/dashboard', active: false },
+
   { name: 'Calls', icon: Phone, href: '/calls', active: false },
   { name: 'Clients', icon: Users, href: '/clients', active: false },
   { name: 'Analytics', icon: BarChart3, href: '/analytics', active: false },
@@ -20,7 +21,9 @@ const DashboardSidebar = () => {
   return (
     <div className="w-64 bg-white border-r border-gray-200 flex flex-col">
       <div className="p-6 border-b border-gray-200">
-        <h1 className="text-xl font-semibold text-gray-900 font-inter">Voice Agent</h1>
+        <Link to="/" className="block">
+          <h1 className="text-xl font-semibold text-gray-900 font-inter hover:text-blue-600 transition-colors cursor-pointer">Voice Bolt</h1>
+        </Link>
       </div>
       
       <nav className="flex-1 px-4 py-6 space-y-2">

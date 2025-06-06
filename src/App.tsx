@@ -3,8 +3,11 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { useMemo } from "react";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { useMemo, useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { User } from "@supabase/supabase-js";
+import { useUserProfile } from "@/hooks/useUserProfile";
 import Index from "./pages/Index";
 import Calls from "./pages/Calls";
 import Clients from "./pages/Clients";
@@ -17,6 +20,8 @@ import SignUp from "./pages/SignUp";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
+import DashboardLayout from "@/components/dashboard/DashboardLayout";
+import DashboardContent from "@/components/dashboard/DashboardContent";
 
 const App = () => {
   const queryClient = useMemo(() => new QueryClient({
@@ -28,6 +33,46 @@ const App = () => {
     },
   }), []);
 
+  const [user, setUser] = useState<User | null>(null);
+  const { profile } = useUserProfile(user);
+
+  useEffect(() => {
+    // Get initial session
+    const getSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setUser(session?.user ?? null);
+    };
+
+    getSession();
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        setUser(session?.user ?? null);
+      }
+    );
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+  };
+
+  // Dashboard component with layout
+  const Dashboard = () => {
+    // If user is not authenticated, redirect to sign in
+    if (!user) {
+      return <Navigate to="/signin" replace />
+    }
+    
+    return (
+      <DashboardLayout user={user} profile={profile} onSignOut={handleSignOut}>
+        <DashboardContent />
+      </DashboardLayout>
+    );
+  };
+
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
@@ -36,6 +81,7 @@ const App = () => {
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />
+            <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/calls" element={<Calls />} />
             <Route path="/clients" element={<Clients />} />
             <Route path="/analytics" element={<Analytics />} />

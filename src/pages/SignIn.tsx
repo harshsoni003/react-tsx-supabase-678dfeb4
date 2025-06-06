@@ -24,6 +24,7 @@ const SignIn = () => {
     const checkUser = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
+        // Navigate to landing page instead of dashboard
         navigate('/');
       }
     };
@@ -48,6 +49,7 @@ const SignIn = () => {
           title: "Welcome back!",
           description: "You have successfully signed in.",
         });
+        // Navigate to landing page instead of dashboard
         navigate('/');
       }
     } catch (err) {

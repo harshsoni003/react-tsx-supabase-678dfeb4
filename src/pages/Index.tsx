@@ -86,13 +86,7 @@ const Index = () => {
     );
   }
 
-  if (user) {
-    return (
-      <DashboardLayout user={user} profile={profile} onSignOut={handleSignOut}>
-        <DashboardContent />
-      </DashboardLayout>
-    );
-  }
+  // We no longer automatically redirect to dashboard when user is signed in
 
   return (
     <div className="min-h-screen bg-white">
@@ -107,14 +101,31 @@ const Index = () => {
               <span className="text-xl font-bold text-gray-900">Voice Bolt</span>
             </div>
             <div className="flex items-center space-x-4">
-              <Link to="/signin">
-                <Button variant="outline" className="rounded-full">Sign In</Button>
-              </Link>
-              <Link to="/signup">
-                <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-full">
-                  Get Started
-                </Button>
-              </Link>
+              {user ? (
+                <>
+                  <Link to="/dashboard">
+                    <Button variant="outline" className="rounded-full">Dashboard</Button>
+                  </Link>
+                  <Button 
+                    onClick={handleSignOut}
+                    variant="outline" 
+                    className="rounded-full"
+                  >
+                    Sign Out
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Link to="/signin">
+                    <Button variant="outline" className="rounded-full">Sign In</Button>
+                  </Link>
+                  <Link to="/signup">
+                    <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-full">
+                      Get Started
+                    </Button>
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         </div>
