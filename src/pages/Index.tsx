@@ -1,6 +1,5 @@
-
 import { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -25,6 +24,7 @@ const Index = () => {
   const { profile, loading: profileLoading } = useUserProfile(user);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [searchParams] = useSearchParams();
 
   useEffect(() => {
     // Get initial session
@@ -47,6 +47,15 @@ const Index = () => {
     return () => subscription.unsubscribe();
   }, []);
 
+  // Show CreateAgentModal if user just signed in
+  useEffect(() => {
+    if (searchParams.get('newSignIn') === 'true' && user) {
+      setShowCreateModal(true);
+      // Remove the newSignIn parameter from URL
+      navigate('/', { replace: true });
+    }
+  }, [searchParams, user, navigate]);
+
   const handleSignOut = async () => {
     const { error } = await supabase.auth.signOut();
     if (error) {
@@ -66,8 +75,8 @@ const Index = () => {
 
   const handleCreateAgent = () => {
     if (user) {
-      // If user is logged in, go to dashboard or agent creation page
-      navigate('/clients');
+      // If user is logged in, show modal instead of navigating
+      setShowCreateModal(true);
     } else {
       // If not logged in, show modal
       setShowCreateModal(true);
@@ -90,52 +99,13 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Navigation Header */}
-      <nav className="fixed top-0 w-full bg-white/95 backdrop-blur-sm border-b border-gray-200 z-40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg flex items-center justify-center mr-3">
-                <Mic className="w-5 h-5 text-white" />
-              </div>
-              <span className="text-xl font-bold text-gray-900">Voice Bolt</span>
-            </div>
-            <div className="flex items-center space-x-4">
-              {user ? (
-                <>
-                  <Link to="/dashboard">
-                    <Button variant="outline" className="rounded-full">Dashboard</Button>
-                  </Link>
-                  <Button 
-                    onClick={handleSignOut}
-                    variant="outline" 
-                    className="rounded-full"
-                  >
-                    Sign Out
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <Link to="/signin">
-                    <Button variant="outline" className="rounded-full">Sign In</Button>
-                  </Link>
-                  <Link to="/signup">
-                    <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-full">
-                      Get Started
-                    </Button>
-                  </Link>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      </nav>
-
       {/* Main Content */}
-      <main className="pt-16">
+      <main>
         <HeroSection 
           onCreateAgent={handleCreateAgent}
           onTalkWithBot={handleTalkWithBot}
+          isLoggedIn={!!user}
+          onSignOut={handleSignOut}
         />
         <FeaturesSection onCreateAgent={handleCreateAgent} />
         <ServicesSection />

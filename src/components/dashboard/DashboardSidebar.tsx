@@ -1,15 +1,14 @@
-
 import React from 'react';
-import { Home, Phone, Users, BarChart3, Bell, User, Settings } from 'lucide-react';
+import { Home, Phone, Users, BarChart3, Bell, User, Settings, Mic } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 
 const navigationItems = [
   { name: 'Dashboard', icon: Home, href: '/dashboard', active: false },
-
   { name: 'Calls', icon: Phone, href: '/calls', active: false },
   { name: 'Clients', icon: Users, href: '/clients', active: false },
   { name: 'Analytics', icon: BarChart3, href: '/analytics', active: false },
+  { name: 'ElevenLabs', icon: Mic, href: '/elevenlabs', active: false },
   { name: 'Notifications', icon: Bell, href: '/notifications', active: false },
   { name: 'Profile', icon: User, href: '/profile', active: false },
   { name: 'Settings', icon: Settings, href: '/settings', active: false },

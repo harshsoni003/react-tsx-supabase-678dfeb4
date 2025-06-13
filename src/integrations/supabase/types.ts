@@ -9,6 +9,77 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      call_logs: {
+        Row: {
+          id: string
+          user_id: string
+          history_item_id: string
+          voice_id: string | null
+          voice_name: string | null
+          transcript: string | null
+          audio_url: string | null
+          date: string | null
+          time: string | null
+          duration: string | null
+          type: string | null
+          status: string | null
+          client_name: string | null
+          agent_name: string | null
+          messages_count: number | null
+          evaluation_result: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id: string
+          user_id: string
+          history_item_id: string
+          voice_id?: string | null
+          voice_name?: string | null
+          transcript?: string | null
+          audio_url?: string | null
+          date?: string | null
+          time?: string | null
+          duration?: string | null
+          type?: string | null
+          status?: string | null
+          client_name?: string | null
+          agent_name?: string | null
+          messages_count?: number | null
+          evaluation_result?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          history_item_id?: string
+          voice_id?: string | null
+          voice_name?: string | null
+          transcript?: string | null
+          audio_url?: string | null
+          date?: string | null
+          time?: string | null
+          duration?: string | null
+          type?: string | null
+          status?: string | null
+          client_name?: string | null
+          agent_name?: string | null
+          messages_count?: number | null
+          evaluation_result?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "call_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -25,7 +24,7 @@ const SignIn = () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
         // Navigate to landing page instead of dashboard
-        navigate('/');
+        navigate('/?newSignIn=true');
       }
     };
     checkUser();
@@ -49,8 +48,8 @@ const SignIn = () => {
           title: "Welcome back!",
           description: "You have successfully signed in.",
         });
-        // Navigate to landing page instead of dashboard
-        navigate('/');
+        // Navigate to landing page with newSignIn parameter
+        navigate('/?newSignIn=true');
       }
     } catch (err) {
       setError('An unexpected error occurred');
@@ -65,7 +64,7 @@ const SignIn = () => {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/`
+          redirectTo: `${window.location.origin}/?newSignIn=true`
         }
       });
 
