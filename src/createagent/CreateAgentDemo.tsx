@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Bot, Plus, MessageCircle, ArrowLeft } from 'lucide-react';
 import CreateAgentWithChatModal from './CreateAgentWithChatModal';
+import WebsiteIframe from '@/components/ui/WebsiteIframe';
 
 const CreateAgentDemo = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -33,18 +34,22 @@ const CreateAgentDemo = () => {
   // Load ElevenLabs widget script when showing website
   useEffect(() => {
     if (showWebsite && agentId) {
-      const script = document.createElement('script');
-      script.src = 'https://unpkg.com/@elevenlabs/convai-widget-embed';
-      script.async = true;
-      script.type = 'text/javascript';
-      document.head.appendChild(script);
+      // Check if script already exists
+      if (!document.querySelector('script[src="https://unpkg.com/@elevenlabs/convai-widget-embed"]')) {
+        const script = document.createElement('script');
+        script.src = 'https://unpkg.com/@elevenlabs/convai-widget-embed';
+        script.async = true;
+        script.type = 'text/javascript';
+        document.head.appendChild(script);
 
-      return () => {
-        // Cleanup script on unmount
-        if (document.head.contains(script)) {
-          document.head.removeChild(script);
-        }
-      };
+        return () => {
+          // Cleanup script on unmount
+          const scriptElement = document.querySelector('script[src="https://unpkg.com/@elevenlabs/convai-widget-embed"]');
+          if (scriptElement && scriptElement.parentNode) {
+            scriptElement.parentNode.removeChild(scriptElement);
+          }
+        };
+      }
     }
   }, [showWebsite, agentId]);
 
@@ -53,11 +58,12 @@ const CreateAgentDemo = () => {
     return (
       <div className="relative w-full h-screen">
         {/* Website iframe */}
-        <iframe
+        <WebsiteIframe
           src={websiteUrl}
-          className="w-full h-full border-0"
           title="Customer Website"
-          sandbox="allow-scripts allow-same-origin allow-forms allow-navigation"
+          className="w-full h-full border-0"
+          fallbackMessage="This website cannot be embedded due to security restrictions, but your agent can still access its content."
+          showFallbackOptions={true}
         />
         
         {/* ElevenLabs Widget positioned in bottom right */}

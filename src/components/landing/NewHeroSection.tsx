@@ -431,9 +431,9 @@ const HeroHeader = ({ onCreateAgent, isLoggedIn, onSignOut }: HeroHeaderProps) =
                         <div className="flex w-full justify-between lg:w-auto">
                             <div className="flex items-center space-x-2">
                                 <img 
-                                    src="/DYOTA_logo-removebg-preview.png" 
+                                    src="DYOTA_logo-removebg-preview.png" 
                                     alt="DYOTA Logo" 
-                                    className="h-10 w-auto"
+                                    className="h-16 w-auto"
                                 />
                                 <span className="text-xl font-bold text-gray-900 dark:text-white">Voice Bolt</span>
                             </div>

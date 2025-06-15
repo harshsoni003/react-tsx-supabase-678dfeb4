@@ -1,4 +1,3 @@
-
 import { useEffect } from 'react';
 
 interface TalkWithBotButtonProps {
@@ -7,17 +6,23 @@ interface TalkWithBotButtonProps {
 
 const TalkWithBotButton = ({ onClick }: TalkWithBotButtonProps) => {
   useEffect(() => {
-    // Load the ElevenLabs Conversational AI widget script
-    const script = document.createElement('script');
-    script.src = 'https://unpkg.com/@elevenlabs/convai-widget-embed';
-    script.async = true;
-    script.type = 'text/javascript';
-    document.body.appendChild(script);
+    // Check if the script is already loaded
+    if (!document.querySelector('script[src="https://unpkg.com/@elevenlabs/convai-widget-embed"]')) {
+      // Load the ElevenLabs Conversational AI widget script
+      const script = document.createElement('script');
+      script.src = 'https://unpkg.com/@elevenlabs/convai-widget-embed';
+      script.async = true;
+      script.type = 'text/javascript';
+      document.body.appendChild(script);
 
-    return () => {
-      // Clean up script when component unmounts
-      document.body.removeChild(script);
-    };
+      return () => {
+        // Clean up script when component unmounts
+        const scriptElement = document.querySelector('script[src="https://unpkg.com/@elevenlabs/convai-widget-embed"]');
+        if (scriptElement && scriptElement.parentNode) {
+          scriptElement.parentNode.removeChild(scriptElement);
+        }
+      };
+    }
   }, []);
 
   return (

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 // Declare the ElevenLabs ConvAI widget for TypeScript
 declare global {
@@ -27,6 +28,7 @@ import {
 } from 'lucide-react';
 import CreateAgentForm from './CreateAgentForm';
 import { getAgentDetails } from './services/agentCreationService';
+import WebsiteIframe from '@/components/ui/WebsiteIframe';
 
 interface CreateAgentWithChatModalProps {
   isOpen: boolean;
@@ -64,36 +66,78 @@ const CreateAgentWithChatModal = ({ isOpen, onClose, onViewOnWebsite }: CreateAg
   const [agentDetails, setAgentDetails] = useState<AgentDetails | null>(null);
   const [isLoadingAgent, setIsLoadingAgent] = useState(false);
   const [isWidgetLoaded, setIsWidgetLoaded] = useState(false);
+  const [micPermissionGranted, setMicPermissionGranted] = useState(false);
+  const [micPermissionRequested, setMicPermissionRequested] = useState(false);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   // Load ElevenLabs widget script
   useEffect(() => {
-    const script = document.createElement('script');
-    script.src = 'https://unpkg.com/@elevenlabs/convai-widget-embed';
-    script.async = true;
-    script.type = 'text/javascript';
-    script.onload = () => {
-      setIsWidgetLoaded(true);
-      console.log('ElevenLabs ConvAI widget loaded');
-    };
-    script.onerror = () => {
-      console.error('Failed to load ElevenLabs ConvAI widget');
-      toast({
-        title: "Widget Load Error",
-        description: "Failed to load voice chat widget. Please refresh the page.",
-        variant: "destructive"
-      });
-    };
-    document.head.appendChild(script);
+    // Check if script already exists
+    if (!document.querySelector('script[src="https://unpkg.com/@elevenlabs/convai-widget-embed"]')) {
+      const script = document.createElement('script');
+      script.src = 'https://unpkg.com/@elevenlabs/convai-widget-embed';
+      script.async = true;
+      script.type = 'text/javascript';
+      script.onload = () => {
+        setIsWidgetLoaded(true);
+        console.log('ElevenLabs ConvAI widget loaded');
+      };
+      script.onerror = () => {
+        console.error('Failed to load ElevenLabs ConvAI widget');
+        toast({
+          title: "Widget Load Error",
+          description: "Failed to load voice chat widget. Please refresh the page.",
+          variant: "destructive"
+        });
+      };
+      document.body.appendChild(script);
 
-    return () => {
-      // Cleanup script when component unmounts
-      const existingScript = document.querySelector('script[src="https://unpkg.com/@elevenlabs/convai-widget-embed"]');
-      if (existingScript) {
-        document.head.removeChild(existingScript);
+      return () => {
+        // Clean up script when component unmounts
+        const scriptElement = document.querySelector('script[src="https://unpkg.com/@elevenlabs/convai-widget-embed"]');
+        if (scriptElement && scriptElement.parentNode) {
+          scriptElement.parentNode.removeChild(scriptElement);
+        }
+      };
+    } else {
+      // Script already exists, just set widget as loaded
+      setIsWidgetLoaded(true);
+    }
+  }, [toast]);
+
+  // Request microphone permissions when widget is loaded
+  useEffect(() => {
+    const requestMicrophonePermission = async () => {
+      if (isWidgetLoaded && !micPermissionRequested && createdAgent) {
+        setMicPermissionRequested(true);
+        try {
+          // Request microphone permission
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          setMicPermissionGranted(true);
+          console.log('Microphone permission granted');
+          
+          // Stop the stream immediately as we just needed permission
+          stream.getTracks().forEach(track => track.stop());
+          
+          toast({
+            title: "Microphone Access Granted",
+            description: "You can now use voice chat with your agent.",
+          });
+        } catch (error) {
+          console.error('Microphone permission denied:', error);
+          setMicPermissionGranted(false);
+          toast({
+            title: "Microphone Access Required",
+            description: "Please allow microphone access to use voice chat.",
+            variant: "destructive"
+          });
+        }
       }
     };
-  }, [toast]);
+
+    requestMicrophonePermission();
+  }, [isWidgetLoaded, micPermissionRequested, createdAgent, toast]);
 
   const handleAgentCreated = async (agentId: string, agentData: any) => {
     // Store the created agent data
@@ -124,14 +168,10 @@ const CreateAgentWithChatModal = ({ isOpen, onClose, onViewOnWebsite }: CreateAg
       setIsLoadingAgent(false);
     }
     
-    // Switch to chat view
-    setCurrentStep('chat');
-    
-    toast({
-      title: "Agent Created!",
-      description: `${agentInfo.agentName} is ready. If knowledge base isn't automatically added, please add it manually via the dashboard.`,
-      duration: 8000
-    });
+    // Instead of switching to chat view in modal, navigate to the agent page
+    navigate(`/agent/${agentId}`, { state: { agent: agentInfo } });
+    // Close the modal after navigation
+    onClose();
   };
 
   const handleBackToCreation = () => {
@@ -189,80 +229,49 @@ const CreateAgentWithChatModal = ({ isOpen, onClose, onViewOnWebsite }: CreateAg
             <div>
               <DialogTitle className="flex items-center space-x-2">
                 <CheckCircle className="w-5 h-5 text-green-600" />
-                <span>Agent Created Successfully!</span>
+                <span>Your Agent is Ready</span>
               </DialogTitle>
               <DialogDescription>
-                Your AI agent is ready. Start a voice conversation to test it.
+                Start a voice conversation to test your new assistant.
               </DialogDescription>
             </div>
           </div>
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* Agent Information Card */}
+          {/* Website Visualization */}
           <Card>
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <Bot className="w-6 h-6 text-blue-600" />
-                  <div>
-                    <CardTitle className="text-lg">
-                      {agentDetails?.name || createdAgent.agentName}
-                    </CardTitle>
-                    <CardDescription className="text-xs">
-                      ID: {createdAgent.agentId}
-                    </CardDescription>
-                  </div>
-                </div>
-                                 <Badge variant="outline" className="bg-green-500 text-white text-xs">
-                   Ready
-                 </Badge>
-              </div>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <div className="grid grid-cols-1 gap-2">
-                <div className="flex items-center space-x-2">
-                  <Building2 className="w-3 h-3 text-gray-500" />
-                  <span className="text-xs">{createdAgent.companyName}</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Globe className="w-3 h-3 text-gray-500" />
-                  <a 
-                    href={createdAgent.websiteUrl} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="text-xs text-blue-600 hover:underline"
-                  >
-                    {createdAgent.websiteUrl}
-                  </a>
-                </div>
-              </div>
-              
-              {agentDetails?.conversation_config?.agent?.first_message && (
-                <div className="mt-3 p-2 bg-blue-50 rounded-md">
-                  <div className="flex items-start space-x-2">
-                    <MessageCircle className="w-3 h-3 text-blue-600 mt-0.5" />
-                    <div>
-                      <p className="text-xs font-medium text-blue-800">First Message:</p>
-                      <p className="text-xs text-blue-700">
-                        "{agentDetails.conversation_config.agent.first_message}"
-                      </p>
+            <CardContent className="p-0 overflow-hidden">
+              <div className="w-full h-72 bg-gray-100 relative">
+                <WebsiteIframe 
+                  src={createdAgent.websiteUrl}
+                  title="Website Preview"
+                  className="w-full h-full border-none"
+                  fallbackMessage="This website cannot be embedded in the preview, but your agent can still access its content for knowledge."
+                  showFallbackOptions={true}
+                  onLoadError={() => {
+                    toast({
+                      title: "Website Preview Unavailable",
+                      description: "The website preview cannot be shown due to security restrictions, but your agent can still use its content.",
+                      variant: "default"
+                    });
+                  }}
+                />
+                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-3 pointer-events-none">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <img src="/DYOTA_logo-removebg-preview.png" alt="DYOTA Logo" className="h-12 w-auto" />
+                      <span className="text-white font-semibold">Voice Bolt</span>
                     </div>
-                  </div>
-                </div>
-              )}
-
-              <div className="mt-3 p-2 bg-green-50 rounded-md">
-                <div className="flex items-start space-x-2">
-                  <Globe className="w-3 h-3 text-green-600 mt-0.5" />
-                  <div>
-                    <p className="text-xs font-medium text-green-800">Knowledge Base:</p>
-                    <p className="text-xs text-green-700">
-                      Processing {createdAgent.companyName} website content...
-                    </p>
-                    <p className="text-xs text-green-600 mt-1">
-                      Your agent is being configured with website knowledge.
-                    </p>
+                    <a 
+                      href={createdAgent.websiteUrl} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-white hover:underline text-sm flex items-center pointer-events-auto"
+                    >
+                      <ExternalLink className="w-3 h-3 mr-1" />
+                      Open Website
+                    </a>
                   </div>
                 </div>
               </div>
@@ -274,11 +283,8 @@ const CreateAgentWithChatModal = ({ isOpen, onClose, onViewOnWebsite }: CreateAg
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center space-x-2">
                 <MessageCircle className="w-4 h-4" />
-                <span>Voice Chat</span>
+          
               </CardTitle>
-              <CardDescription className="text-xs">
-                Your agent has been created with knowledge from your website. Click the microphone below to start talking.
-              </CardDescription>
             </CardHeader>
             <CardContent className="pt-0">
               <div className="space-y-3">
@@ -295,11 +301,32 @@ const CreateAgentWithChatModal = ({ isOpen, onClose, onViewOnWebsite }: CreateAg
                 {/* ElevenLabs ConvAI Widget Container */}
                 <div className="flex justify-center">
                   {isWidgetLoaded && createdAgent ? (
-                    <div 
-                      dangerouslySetInnerHTML={{
-                        __html: `<elevenlabs-convai agent-id="${createdAgent.agentId}"></elevenlabs-convai>`
-                      }}
-                    />
+                    micPermissionGranted ? (
+                      <div>
+                        {React.createElement('elevenlabs-convai', {
+                          'agent-id': createdAgent.agentId,
+                          'variant': 'compact',
+                          'text-input': 'false',
+                          'text-only-mode': 'false'
+                        })}
+                      </div>
+                    ) : (
+                      <div className="bg-white rounded-lg shadow-lg p-6 flex flex-col items-center max-w-md">
+                        <div className="flex items-center mb-3">
+                          <MessageCircle className="w-5 h-5 text-orange-500 mr-2" />
+                          <span className="text-lg font-medium">Microphone Access Required</span>
+                        </div>
+                        <p className="text-sm text-gray-600 text-center mb-4">
+                          To start voice chat with your agent, please allow microphone access when prompted.
+                        </p>
+                        <Button 
+                          onClick={() => window.location.reload()}
+                          size="sm"
+                        >
+                          Refresh Page
+                        </Button>
+                      </div>
+                    )
                   ) : (
                     <div className="flex items-center justify-center p-8 text-gray-500">
                       <Loader2 className="w-6 h-6 animate-spin mr-2" />
@@ -308,11 +335,7 @@ const CreateAgentWithChatModal = ({ isOpen, onClose, onViewOnWebsite }: CreateAg
                   )}
                 </div>
 
-                {/* Help Text */}
-                <div className="text-center text-xs text-gray-600">
-                  <p>Click the microphone icon above to start voice conversation</p>
-                  <p>Your agent includes knowledge from {createdAgent.websiteUrl} and can answer questions about {createdAgent.companyName}</p>
-                </div>
+        
 
                 {/* External Link */}
                 <div className="text-center pt-2">
@@ -330,19 +353,8 @@ const CreateAgentWithChatModal = ({ isOpen, onClose, onViewOnWebsite }: CreateAg
             </CardContent>
           </Card>
 
-          {/* Action Buttons */}
-          <div className="flex space-x-2 pt-2">
-            <Button variant="outline" onClick={handleBackToCreation} className="flex-1">
-              Create Another Agent
-            </Button>
-            <Button onClick={handleViewOnWebsite} className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white">
-              <Globe className="w-4 h-4 mr-2" />
-              View on Website
-            </Button>
-            <Button variant="outline" onClick={handleCloseModal}>
-              Close
-            </Button>
-          </div>
+   
+          
         </div>
       </>
     );

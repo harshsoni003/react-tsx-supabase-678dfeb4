@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -39,7 +38,39 @@ export const useUserProfile = (user: User | null) => {
 
         if (error) {
           console.error('Error fetching profile:', error);
-          setError(error.message);
+          
+          // If the profile doesn't exist yet, create a default profile
+          if (error.code === 'PGRST116' || error.message.includes('contains 0 rows')) {
+            // Create a default profile for the user
+            const defaultProfile = {
+              id: user.id,
+              username: user.email?.split('@')[0] || 'user',
+              email: user.email || '',
+              full_name: user.user_metadata?.full_name || null,
+              role: 'user',
+              avatar_url: user.user_metadata?.avatar_url || null,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+              vip_access: false
+            };
+            
+            // Insert the default profile
+            const { data: newProfile, error: insertError } = await supabase
+              .from('profiles')
+              .insert(defaultProfile)
+              .select('*')
+              .single();
+              
+            if (insertError) {
+              console.error('Error creating default profile:', insertError);
+              setError('Failed to create user profile');
+            } else {
+              console.log('Created default profile:', newProfile);
+              setProfile(newProfile);
+            }
+          } else {
+            setError(error.message);
+          }
         } else {
           setProfile(data);
         }

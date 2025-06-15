@@ -77,9 +77,16 @@ export const createAgent = async (data: AgentCreationData): Promise<string> => {
     console.log('Creating agent with data:', data);
     
     // Get the API key
-    const apiKey = await getElevenLabsApiKey();
+    let apiKey = await getElevenLabsApiKey();
+    
+    // Use environment variable as fallback if not found
     if (!apiKey) {
-      throw new Error('No ElevenLabs API key found. Please add your API key in Settings.');
+      console.warn('No API key found from getElevenLabsApiKey, trying environment variable');
+      apiKey = import.meta.env.VITE_ELEVENLABS_API_KEY;
+    }
+    
+    if (!apiKey) {
+      throw new Error('No ElevenLabs API key found. Please add your API key in Settings or .env file.');
     }
 
     // Generate agent prompt and configuration
@@ -258,9 +265,17 @@ const createWebsiteKnowledgeBase = async (websiteUrl: string, companyName: strin
   try {
     console.log(`Creating knowledge base document from website ${websiteUrl}...`);
     
-    const apiKey = await getElevenLabsApiKey();
+    // Get the API key
+    let apiKey = await getElevenLabsApiKey();
+    
+    // Use environment variable as fallback if not found
     if (!apiKey) {
-      throw new Error('No ElevenLabs API key found for knowledge base creation.');
+      console.warn('No API key found for knowledge base creation, trying environment variable');
+      apiKey = import.meta.env.VITE_ELEVENLABS_API_KEY;
+    }
+    
+    if (!apiKey) {
+      throw new Error('No ElevenLabs API key found for knowledge base creation. Please add your API key in Settings or .env file.');
     }
 
     const response = await fetch('https://api.elevenlabs.io/v1/convai/knowledge-base/url', {
@@ -331,7 +346,15 @@ const createWebsiteKnowledgeBase = async (websiteUrl: string, companyName: strin
 // Associate knowledge base document with an agent - comprehensive approach
 const associateKnowledgeBaseWithAgent = async (agentId: string, knowledgeBaseId: string): Promise<void> => {
   try {
-    const apiKey = await getElevenLabsApiKey();
+    // Get the API key
+    let apiKey = await getElevenLabsApiKey();
+    
+    // Use hardcoded API key as fallback if not found
+    if (!apiKey) {
+      console.warn('No API key found for knowledge base association, using hardcoded key as fallback');
+      apiKey = "sk_3597e0fc22733d1bdaec567f567f34863ef4c6e2b2a20488";
+    }
+    
     if (!apiKey) {
       throw new Error('No ElevenLabs API key found for knowledge base association.');
     }

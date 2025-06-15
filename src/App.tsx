@@ -23,6 +23,7 @@ import NotFound from "./pages/NotFound";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import DashboardContent from "@/components/dashboard/DashboardContent";
 import ElevenLabs from "./pages/ElevenLabs";
+import AgentPage from "./pages/AgentPage";
 
 const App = () => {
   const queryClient = useMemo(() => new QueryClient({
@@ -89,6 +90,7 @@ const App = () => {
             <Route path="/notifications" element={<Notifications />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/elevenlabs" element={<ElevenLabs />} />
+            <Route path="/agent/:agentId" element={<AgentPage />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/signin" element={<SignIn />} />
             <Route path="/signup" element={<SignUp />} />

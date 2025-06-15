@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import CreateAgentWithChatModal from './CreateAgentWithChatModal';
 import { useToast } from '@/hooks/use-toast';
+import WebsiteIframe from '@/components/ui/WebsiteIframe';
 
 const CreateAgentPage = () => {
   const { toast } = useToast();
@@ -32,11 +33,12 @@ const CreateAgentPage = () => {
     return (
       <div className="relative w-full h-screen">
         {/* Website iframe */}
-        <iframe
+        <WebsiteIframe
           src={websiteUrl}
-          className="w-full h-full border-0"
           title="Customer Website"
-          sandbox="allow-scripts allow-same-origin allow-forms allow-navigation"
+          className="w-full h-full border-0"
+          fallbackMessage="This website cannot be embedded due to security restrictions, but your agent can still access its content."
+          showFallbackOptions={true}
         />
         
         {/* ElevenLabs Widget positioned in bottom right */}

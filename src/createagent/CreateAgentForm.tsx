@@ -110,11 +110,6 @@ const CreateAgentForm = ({ onSuccess, onCancel }: CreateAgentFormProps) => {
 
       const agentId = await createAgent(agentData);
 
-      toast({
-        title: "Agent Created Successfully!",
-        description: `Your agent "${agentData.agentName}" has been created and configured with knowledge from your website.`
-      });
-
       // Reset form
       setFormData({
         email: '',

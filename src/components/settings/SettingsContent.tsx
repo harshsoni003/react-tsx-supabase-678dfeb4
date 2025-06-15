@@ -11,12 +11,15 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
+// Get the API key from the environment variables
+const DEFAULT_API_KEY = import.meta.env.VITE_ELEVENLABS_API_KEY || '';
+
 const SettingsContent = () => {
   const [activeTab, setActiveTab] = useState('integrations');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [elevenLabsApiKey, setElevenLabsApiKey] = useState('');
+  const [elevenLabsApiKey, setElevenLabsApiKey] = useState(DEFAULT_API_KEY);
   const [showApiKey, setShowApiKey] = useState(false);
   const { toast } = useToast();
 
@@ -41,7 +44,7 @@ const SettingsContent = () => {
     language: 'en'
   });
 
-  // Load API key from user metadata
+  // Load API key from user metadata or use default from .env
   useEffect(() => {
     const loadApiKey = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -49,6 +52,16 @@ const SettingsContent = () => {
         const apiKey = session.user.user_metadata?.elevenlabs_api_key;
         if (apiKey) {
           setElevenLabsApiKey(apiKey);
+        } else if (DEFAULT_API_KEY) {
+          // If no user key but we have a default key, save it to user profile
+          if (DEFAULT_API_KEY) {
+            await supabase.auth.updateUser({
+              data: {
+                elevenlabs_api_key: DEFAULT_API_KEY
+              }
+            });
+            setElevenLabsApiKey(DEFAULT_API_KEY);
+          }
         }
       }
     };
@@ -224,6 +237,7 @@ const SettingsContent = () => {
               <CardTitle>ElevenLabs Integration</CardTitle>
               <CardDescription>
                 Connect your ElevenLabs account to access voice calls and history.
+                {DEFAULT_API_KEY && <span className="text-green-600 ml-2">Default API key available from .env</span>}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
