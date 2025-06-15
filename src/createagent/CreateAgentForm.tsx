@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Bot, Building2, Globe, Mail } from 'lucide-react';
+import { Bot, Building2, Globe, Mail } from 'lucide-react';
 import { createAgent } from './services/agentCreationService';
 
 interface CreateAgentFormProps {
@@ -134,14 +134,30 @@ const CreateAgentForm = ({ onSuccess, onCancel }: CreateAgentFormProps) => {
   };
 
   return (
-    <div className="max-w-md mx-auto bg-white rounded-lg shadow-lg p-6">
+    <div className="max-w-xl mx-auto bg-white rounded-lg shadow-lg p-6 relative overflow-visible">
+      {/* Loading Overlay */}
+      {isLoading && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex flex-col items-center pt-20 z-50">
+          <div className="bg-white rounded-full p-6 mb-6 flex items-center justify-center shadow-2xl border-2 border-gray-100">
+            <img 
+              src="/spark-unscreen.gif" 
+              alt="Creating" 
+              className="w-56 h-56" 
+            />
+          </div>          
+        </div>
+      )}
       <div className="text-center mb-6">
-        <Bot className="w-12 h-12 text-blue-600 mx-auto mb-4" />
-        <h2 className="text-2xl font-bold text-gray-800">Create Your AI Agent</h2>
+        <img 
+          src="/DYOTA_logo-removebg-preview.png" 
+          alt="DYOTA Logo" 
+          className="h-24 mx-auto mb-2" 
+        />
+        <h2 className="text-2xl font-bold text-gray-800">Voice Bolt</h2>
         <p className="text-gray-600">Fill in the details to create your custom voice agent</p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-4 overflow-visible">
         {/* Email Field */}
         <div>
           <Label htmlFor="email" className="flex items-center gap-2 text-sm font-medium text-gray-700">
@@ -190,13 +206,11 @@ const CreateAgentForm = ({ onSuccess, onCancel }: CreateAgentFormProps) => {
             required
             className="mt-1"
           />
-          <p className="text-xs text-gray-500 mt-1">
-            This website will be automatically added to your agent's knowledge base
-          </p>
+         
         </div>
 
         {/* Agent Name Field (Optional) */}
-        <div>
+        {/* <div>
           <Label htmlFor="agentName" className="flex items-center gap-2 text-sm font-medium text-gray-700">
             <Bot className="w-4 h-4" />
             Agent Name (Optional)
@@ -208,7 +222,7 @@ const CreateAgentForm = ({ onSuccess, onCancel }: CreateAgentFormProps) => {
             placeholder="Leave empty to auto-generate"
             className="mt-1"
           />
-        </div>
+        </div> */}
 
         {/* Action Buttons */}
         <div className="flex gap-3 pt-4">
@@ -226,23 +240,14 @@ const CreateAgentForm = ({ onSuccess, onCancel }: CreateAgentFormProps) => {
           <Button
             type="submit"
             disabled={isLoading}
-            className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
+            className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white w-full"
           >
-            {isLoading ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Creating Agent...
-              </>
-            ) : (
-              'Create Agent'
-            )}
+            Create Agent
           </Button>
         </div>
       </form>
 
-      <div className="mt-4 text-xs text-gray-500 text-center">
-        * Required fields
-      </div>
+          
     </div>
   );
 };

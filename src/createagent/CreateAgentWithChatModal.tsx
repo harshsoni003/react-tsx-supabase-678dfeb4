@@ -197,12 +197,7 @@ const CreateAgentWithChatModal = ({ isOpen, onClose, onViewOnWebsite }: CreateAg
 
   const renderCreationStep = () => (
     <>
-      <DialogHeader>
-        <DialogTitle>Create Your Voice Agent</DialogTitle>
-        <DialogDescription>
-          Fill in the details to create your AI voice agent with knowledge base
-        </DialogDescription>
-      </DialogHeader>
+      
       
       <CreateAgentForm 
         onSuccess={handleAgentCreated}
