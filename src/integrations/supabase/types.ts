@@ -9,76 +9,107 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      call_logs: {
+      agent_creations: {
         Row: {
-          id: string
-          user_id: string
-          history_item_id: string
-          voice_id: string | null
-          voice_name: string | null
-          transcript: string | null
-          audio_url: string | null
-          date: string | null
-          time: string | null
-          duration: string | null
-          type: string | null
-          status: string | null
-          client_name: string | null
-          agent_name: string | null
-          messages_count: number | null
-          evaluation_result: string | null
+          agent_name: string
+          company_name: string
           created_at: string
+          elevenlabs_agent_id: string | null
+          email: string
+          id: string
+          status: string
           updated_at: string
+          user_id: string | null
+          website_url: string
         }
         Insert: {
-          id: string
-          user_id: string
-          history_item_id: string
-          voice_id?: string | null
-          voice_name?: string | null
-          transcript?: string | null
-          audio_url?: string | null
-          date?: string | null
-          time?: string | null
-          duration?: string | null
-          type?: string | null
-          status?: string | null
-          client_name?: string | null
-          agent_name?: string | null
-          messages_count?: number | null
-          evaluation_result?: string | null
+          agent_name: string
+          company_name: string
           created_at?: string
+          elevenlabs_agent_id?: string | null
+          email: string
+          id?: string
+          status?: string
           updated_at?: string
+          user_id?: string | null
+          website_url: string
         }
         Update: {
+          agent_name?: string
+          company_name?: string
+          created_at?: string
+          elevenlabs_agent_id?: string | null
+          email?: string
           id?: string
-          user_id?: string
-          history_item_id?: string
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+          website_url?: string
+        }
+        Relationships: []
+      }
+      call_logs: {
+        Row: {
+          agent_name: string | null
+          audio_url: string | null
+          client_name: string | null
+          created_at: string | null
+          date: string | null
+          duration: string | null
+          evaluation_result: string | null
+          history_item_id: string
+          id: string
+          messages_count: number | null
+          status: string | null
+          time: string | null
+          transcript: string | null
+          type: string | null
+          updated_at: string | null
+          user_id: string
+          voice_id: string | null
+          voice_name: string | null
+        }
+        Insert: {
+          agent_name?: string | null
+          audio_url?: string | null
+          client_name?: string | null
+          created_at?: string | null
+          date?: string | null
+          duration?: string | null
+          evaluation_result?: string | null
+          history_item_id: string
+          id?: string
+          messages_count?: number | null
+          status?: string | null
+          time?: string | null
+          transcript?: string | null
+          type?: string | null
+          updated_at?: string | null
+          user_id: string
           voice_id?: string | null
           voice_name?: string | null
-          transcript?: string | null
-          audio_url?: string | null
-          date?: string | null
-          time?: string | null
-          duration?: string | null
-          type?: string | null
-          status?: string | null
-          client_name?: string | null
-          agent_name?: string | null
-          messages_count?: number | null
-          evaluation_result?: string | null
-          created_at?: string
-          updated_at?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "call_logs_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          }
-        ]
+        Update: {
+          agent_name?: string | null
+          audio_url?: string | null
+          client_name?: string | null
+          created_at?: string | null
+          date?: string | null
+          duration?: string | null
+          evaluation_result?: string | null
+          history_item_id?: string
+          id?: string
+          messages_count?: number | null
+          status?: string | null
+          time?: string | null
+          transcript?: string | null
+          type?: string | null
+          updated_at?: string | null
+          user_id?: string
+          voice_id?: string | null
+          voice_name?: string | null
+        }
+        Relationships: []
       }
       profiles: {
         Row: {

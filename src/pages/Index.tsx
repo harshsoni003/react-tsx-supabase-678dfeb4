@@ -8,12 +8,13 @@ import { User } from '@supabase/supabase-js';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import DashboardContent from '@/components/dashboard/DashboardContent';
 import HeroSection from '@/components/landing/HeroSection';
-import FeaturesSection from '@/components/landing/FeaturesSection';
-import ServicesSection from '@/components/landing/ServicesSection';
+
 import Footer from '@/components/landing/Footer';
 import TalkWithBotButton from '@/components/landing/TalkWithBotButton';
 import CreateAgentModal from '@/components/landing/CreateAgentModal';
 import VoiceChatModal from '@/components/landing/VoiceChatModal';
+import PricingSection from '@/components/landing/PricingSection';
+import FAQSection from '@/components/landing/FAQSection';
 import { Mic } from 'lucide-react';
 
 const Index = () => {
@@ -107,8 +108,9 @@ const Index = () => {
           isLoggedIn={!!user}
           onSignOut={handleSignOut}
         />
-        <FeaturesSection onCreateAgent={handleCreateAgent} />
-        <ServicesSection />
+      
+        <PricingSection onCreateAgent={handleCreateAgent} />
+        <FAQSection />
         <Footer />
       </main>
 

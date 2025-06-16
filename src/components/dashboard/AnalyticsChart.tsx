@@ -125,11 +125,20 @@ const AnalyticsChart = ({ data, topDate, isLoading }: AnalyticsChartProps) => {
             
             {/* X-axis labels */}
             <div className="absolute bottom-0 left-0 right-0 flex justify-between text-xs text-gray-500 mt-2">
-              {data.map((point, index) => (
-                <span key={index} className="transform -rotate-45 origin-bottom-left">
-                  {new Date(point.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                </span>
-              ))}
+              {data.map((point, index) => {
+                const date = new Date(point.date);
+                const today = new Date();
+                const options: Intl.DateTimeFormatOptions = { 
+                  month: 'long', 
+                  day: 'numeric',
+                  year: date.getFullYear() !== today.getFullYear() ? 'numeric' : undefined 
+                };
+                return (
+                  <span key={index} className="transform -rotate-45 origin-bottom-left">
+                    {date.toLocaleDateString('en-US', options)}
+                  </span>
+                );
+              })}
             </div>
           </div>
         </CardContent>

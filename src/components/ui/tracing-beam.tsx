@@ -1,4 +1,3 @@
-
 "use client";
 import React, { useEffect, useRef, useState } from "react";
 import {
@@ -71,8 +70,8 @@ export const TracingBeam = ({
               delay: 0.5,
             }}
             animate={{
-              backgroundColor: scrollYProgress.get() > 0 ? "white" : "rgb(34 197 94)", // emerald-500
-              borderColor: scrollYProgress.get() > 0 ? "white" : "rgb(22 163 74)", // emerald-600
+              backgroundColor: scrollYProgress.get() > 0 ? "white" : "#DAA520", // golden color
+              borderColor: scrollYProgress.get() > 0 ? "white" : "#B8860B", // darker golden color
             }}
             className="h-2 w-2 rounded-full border border-neutral-300 bg-white"
           />
@@ -112,10 +111,10 @@ export const TracingBeam = ({
               y1={y1}
               y2={y2}
             >
-              <stop stopColor="#18CCFC" stopOpacity="0"></stop>
-              <stop stopColor="#18CCFC"></stop>
-              <stop offset="0.325" stopColor="#6344F5"></stop>
-              <stop offset="1" stopColor="#AE48FF" stopOpacity="0"></stop>
+              <stop stopColor="#FFD700" stopOpacity="0.2"></stop>
+              <stop stopColor="#DAA520"></stop>
+              <stop offset="0.325" stopColor="#B8860B"></stop>
+              <stop offset="1" stopColor="#FFD700" stopOpacity="0.2"></stop>
             </motion.linearGradient>
           </defs>
         </svg>

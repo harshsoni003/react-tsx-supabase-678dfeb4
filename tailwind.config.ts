@@ -1,4 +1,3 @@
-
 import type { Config } from "tailwindcss";
 
 export default {
@@ -102,14 +101,47 @@ export default {
 					'100%': {
 						transform: 'translateX(calc(var(--size) * 1))',
 					},
+				},
+				'ping-slow': {
+					'75%, 100%': {
+						transform: 'scale(2)',
+						opacity: '0'
+					}
+				},
+				'shimmer': {
+					'0%': {
+						transform: 'translateX(-100%)',
+					},
+					'100%': {
+						transform: 'translateX(100%)',
+					},
 				}
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
 				'accordion-up': 'accordion-up 0.2s ease-out',
-				'border-beam': 'border-beam calc(var(--duration) * 1s) infinite linear'
+				'border-beam': 'border-beam calc(var(--duration) * 1s) infinite linear',
+				'ping-slow': 'ping-slow 2s cubic-bezier(0, 0, 0.2, 1) infinite',
+				'shimmer': 'shimmer 2.5s infinite linear'
+			},
+			animationDelay: {
+				'300': '300ms',
+				'600': '600ms',
 			}
 		}
 	},
-	plugins: [require("tailwindcss-animate")],
+	plugins: [
+		require("tailwindcss-animate"),
+		function({ addUtilities, theme }) {
+			const animationDelays = theme('animationDelay', {});
+			const utilities = Object.entries(animationDelays).reduce((acc, [key, value]) => {
+				return {
+					...acc,
+					[`.animation-delay-${key}`]: { animationDelay: value },
+				};
+			}, {});
+			
+			addUtilities(utilities);
+		}
+	],
 } satisfies Config;

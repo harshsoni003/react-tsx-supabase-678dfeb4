@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -24,6 +23,7 @@ import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import DashboardContent from "@/components/dashboard/DashboardContent";
 import ElevenLabs from "./pages/ElevenLabs";
 import AgentPage from "./pages/AgentPage";
+import PricingPage from "./pages/PricingPage";
 
 const App = () => {
   const queryClient = useMemo(() => new QueryClient({
@@ -75,6 +75,22 @@ const App = () => {
     );
   };
 
+  // Redirect component for external links
+  const ExternalRedirect = ({ to }: { to: string }) => {
+    useEffect(() => {
+      window.location.href = to;
+    }, [to]);
+    
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#F5F7FA]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#3B82F6] mx-auto mb-4"></div>
+          <p>Redirecting to external site...</p>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
@@ -96,6 +112,7 @@ const App = () => {
             <Route path="/signup" element={<SignUp />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/pricing" element={<PricingPage />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

@@ -71,8 +71,9 @@ const CreateAgentDemo = () => {
           {React.createElement('elevenlabs-convai', {
             'agent-id': agentId,
             variant: 'full',
-            'avatar-orb-color-1': '#4D9CFF',
-            'avatar-orb-color-2': '#9CE6E6'
+            'avatar-image-url': '/22221.png',
+            'avatar-orb-color-1': '#2792dc',
+            'avatar-orb-color-2': '#9ce6e6'
           })}
         </div>
         

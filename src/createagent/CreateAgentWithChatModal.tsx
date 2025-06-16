@@ -1,16 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-// Declare the ElevenLabs ConvAI widget for TypeScript
-declare global {
-  namespace JSX {
-    interface IntrinsicElements {
-      'elevenlabs-convai': React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement> & {
-        'agent-id'?: string;
-      }, HTMLElement>;
-    }
-  }
-}
+// ElevenLabs ConvAI widget types are declared in src/types/elevenlabs-convai.d.ts
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -301,6 +292,9 @@ const CreateAgentWithChatModal = ({ isOpen, onClose, onViewOnWebsite }: CreateAg
                         {React.createElement('elevenlabs-convai', {
                           'agent-id': createdAgent.agentId,
                           'variant': 'compact',
+                          'avatar-image-url': '/22221.png',
+                          'avatar-orb-color-1': '#2792dc',
+                          'avatar-orb-color-2': '#9ce6e6',
                           'text-input': 'false',
                           'text-only-mode': 'false'
                         })}

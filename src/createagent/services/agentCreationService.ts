@@ -1,4 +1,5 @@
 import { getElevenLabsApiKey } from '@/services/elevenlabs';
+import { firecrawlService } from '@/services/firecrawlService';
 
 // Interface for agent creation data
 export interface AgentCreationData {
@@ -11,14 +12,34 @@ export interface AgentCreationData {
 // Interface for ElevenLabs agent creation request
 interface ElevenLabsAgentRequest {
   name: string;
-  prompt: string;
-  description?: string;
-  voice_id?: string;
-  language?: string;
-  conversation_config?: {
-    agent_prompt: string;
-    first_message?: string;
-    language?: string;
+  conversation_config: {
+    agent: {
+      prompt: {
+        prompt: string;
+        knowledge_base?: Array<{
+          type: string;
+          name: string;
+          id: string;
+          usage_mode: string;
+        }>;
+        rag?: {
+          enabled: boolean;
+          embedding_model?: string;
+          max_documents_length?: number;
+        };
+      };
+      first_message: string;
+      language: string;
+    };
+    tts: {
+      voice_id: string;
+      voice_settings: {
+        stability: number;
+        similarity_boost: number;
+        style: number;
+        use_speaker_boost: boolean;
+      };
+    };
   };
 }
 
@@ -26,9 +47,7 @@ interface ElevenLabsAgentRequest {
 interface ElevenLabsAgentResponse {
   agent_id: string;
   name: string;
-  prompt: string;
-  description?: string;
-  voice_id?: string;
+  conversation_config?: any;
   created_at: string;
   updated_at: string;
 }
@@ -71,7 +90,90 @@ const generateFirstMessage = (data: AgentCreationData): string => {
   return `Hello! I'm ${data.agentName}, your AI assistant from ${data.companyName}. How can I help you today?`;
 };
 
-// Create a new agent in ElevenLabs
+// Create knowledge base document from scraped website content
+const createKnowledgeBaseFromContent = async (content: string, companyName: string, websiteUrl: string): Promise<string> => {
+  try {
+    console.log('Creating knowledge base document from scraped content...');
+    
+    // Get the API key
+    let apiKey = await getElevenLabsApiKey();
+    
+    // Use environment variable as fallback if not found
+    if (!apiKey) {
+      console.warn('No API key found for knowledge base creation, trying environment variable');
+      apiKey = import.meta.env.VITE_ELEVENLABS_API_KEY;
+    }
+    
+    if (!apiKey) {
+      throw new Error('No ElevenLabs API key found for knowledge base creation. Please add your API key in Settings or .env file.');
+    }
+
+    const response = await fetch('https://api.elevenlabs.io/v1/convai/knowledge-base/text', {
+      method: 'POST',
+      headers: {
+        'xi-api-key': apiKey,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        text: content,
+        name: `${companyName} Website Content`
+      }),
+    });
+
+    if (!response.ok) {
+      let errorMessage = `Failed to create knowledge base document: ${response.status}`;
+      
+      try {
+        const errorText = await response.text();
+        const errorData = JSON.parse(errorText);
+        
+        if (response.status === 401) {
+          errorMessage = 'Invalid API key for knowledge base operation.';
+        } else if (response.status === 403) {
+          errorMessage = 'Access denied for knowledge base operation.';
+        } else if (response.status === 422) {
+          errorMessage = `Invalid content or parameters: ${errorData.detail?.[0]?.msg || errorText}`;
+        } else {
+          errorMessage = `Knowledge base API error: ${response.status} - ${errorData.detail || errorText}`;
+        }
+      } catch (parseError) {
+        console.error('Error parsing knowledge base response:', parseError);
+      }
+      
+      throw new Error(errorMessage);
+    }
+
+    const result = await response.json();
+    console.log('Knowledge base document created successfully:', result);
+    
+    // Log the full response to debug the structure
+    console.log('Full knowledge base creation response:', JSON.stringify(result, null, 2));
+    
+    // The API should return an ID for the created document
+    let documentId = null;
+    if (result.id) {
+      documentId = result.id;
+    } else if (result.document_id) {
+      documentId = result.document_id;
+    } else if (result.data?.id) {
+      documentId = result.data.id;
+    } else if (result.data?.document_id) {
+      documentId = result.data.document_id;
+    } else {
+      console.error('Could not find document ID in response. Response structure:', Object.keys(result));
+      throw new Error('Knowledge base creation response did not include document ID');
+    }
+    
+    console.log('Extracted knowledge base document ID:', documentId);
+    return documentId;
+
+  } catch (error) {
+    console.error('Error creating knowledge base document:', error);
+    throw error;
+  }
+};
+
+// Create a new agent in ElevenLabs with scraped website content
 export const createAgent = async (data: AgentCreationData): Promise<string> => {
   try {
     console.log('Creating agent with data:', data);
@@ -93,59 +195,104 @@ export const createAgent = async (data: AgentCreationData): Promise<string> => {
     const agentPrompt = generateAgentPrompt(data);
     const firstMessage = generateFirstMessage(data);
 
-    // Create knowledge base FIRST before agent
+    // First, scrape the website content using FireCrawl
+    console.log('Scraping website content with FireCrawl...');
+    const scrapeResult = await firecrawlService.scrapeWebsite(data.websiteUrl);
+    
     let knowledgeBaseId: string | null = null;
-    try {
-      console.log('Creating knowledge base document BEFORE agent creation...');
-      knowledgeBaseId = await createWebsiteKnowledgeBase(data.websiteUrl, data.companyName);
-      console.log('Knowledge base created with ID:', knowledgeBaseId);
+    
+    if (scrapeResult.success && scrapeResult.content) {
+      try {
+        console.log('Creating knowledge base from scraped content...');
+        knowledgeBaseId = await createKnowledgeBaseFromContent(
+          scrapeResult.content, 
+          data.companyName, 
+          data.websiteUrl
+        );
+        console.log('Knowledge base created with ID:', knowledgeBaseId);
+        
+        // Wait a bit for KB to be fully initialized
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      } catch (error) {
+        console.warn('Failed to create knowledge base from scraped content:', error);
+        
+        // Fallback to URL-based knowledge base
+        try {
+          console.log('Trying URL-based knowledge base as fallback...');
+          knowledgeBaseId = await createWebsiteKnowledgeBase(
+            data.websiteUrl,
+            data.companyName
+          );
+          console.log('URL-based knowledge base created with ID:', knowledgeBaseId);
+          
+          // Wait a bit for KB to be fully initialized
+          await new Promise(resolve => setTimeout(resolve, 2000));
+        } catch (kbError) {
+          console.error('Failed to create URL-based knowledge base as fallback:', kbError);
+        }
+      }
+    } else {
+      console.warn('Failed to scrape website content:', scrapeResult.error);
       
-      // Wait a bit for KB to be fully initialized
-      await new Promise(resolve => setTimeout(resolve, 2000));
-    } catch (error) {
-      console.warn('Failed to create knowledge base:', error);
+      // Fallback to URL-based knowledge base
+      try {
+        console.log('Trying URL-based knowledge base as primary method...');
+        knowledgeBaseId = await createWebsiteKnowledgeBase(
+          data.websiteUrl,
+          data.companyName
+        );
+        console.log('URL-based knowledge base created with ID:', knowledgeBaseId);
+        
+        // Wait a bit for KB to be fully initialized
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      } catch (kbError) {
+        console.error('Failed to create URL-based knowledge base:', kbError);
+      }
     }
 
-    // Prepare the agent creation request with ALL possible KB structures
-    const agentRequest: any = {
+    // Prepare the agent creation request with proper knowledge base structure
+    const agentRequest: ElevenLabsAgentRequest = {
       name: data.agentName,
       conversation_config: {
         agent: {
           prompt: {
-            prompt: agentPrompt
+            prompt: agentPrompt,
+            // Include knowledge base in the prompt configuration if we have one (use auto mode for RAG)
+            ...(knowledgeBaseId && {
+              knowledge_base: [
+                {
+                  type: "url",
+                  name: `${data.companyName} Website Knowledge`,
+                  id: knowledgeBaseId,
+                  usage_mode: "auto" // Use auto mode which enables RAG functionality
+                }
+              ]
+            }),
+            // Always enable RAG when we have a knowledge base
+            ...(knowledgeBaseId && {
+              rag: {
+                enabled: true,
+                embedding_model: "e5_mistral_7b_instruct", // Default embedding model
+                max_documents_length: 10000 // Maximum document length for RAG
+              }
+            })
           },
           first_message: firstMessage,
           language: 'en'
+        },
+        tts: {
+          voice_id: 'EXAVITQu4vr4xnSDxMaL', // Sarah's voice ID
+          voice_settings: {
+            stability: 0.5,
+            similarity_boost: 0.75,
+            style: 0.0,
+            use_speaker_boost: true
+          }
         }
       }
     };
 
-    // Try ALL possible knowledge base inclusion methods if we have a KB ID
-    if (knowledgeBaseId) {
-      // Method 1: In conversation_config.agent
-      agentRequest.conversation_config.agent.knowledge_base = {
-        enabled: true,
-        document_ids: [knowledgeBaseId]
-      };
-      
-      // Method 2: At root level
-      agentRequest.knowledge_base = {
-        enabled: true,
-        document_ids: [knowledgeBaseId]
-      };
-      
-      // Method 3: Simple document_ids array
-      agentRequest.document_ids = [knowledgeBaseId];
-      
-      // Method 4: In conversation_config directly
-      agentRequest.conversation_config.knowledge_base = {
-        enabled: true,
-        document_ids: [knowledgeBaseId]
-      };
-    }
-
-    console.log('Agent creation request with KB:', JSON.stringify(agentRequest, null, 2));
-
+    console.log('Agent creation request:', JSON.stringify(agentRequest, null, 2));
     console.log('Sending agent creation request to ElevenLabs...');
 
     // Make the API request to create the agent
@@ -184,56 +331,42 @@ export const createAgent = async (data: AgentCreationData): Promise<string> => {
     }
 
     const result: ElevenLabsAgentResponse = await response.json();
+    const agentId = result.agent_id;
     
-    console.log('Agent created successfully:', result);
-    console.log('Checking if knowledge base was included in agent creation...');
-
-    // Verify if KB was included during creation
+    console.log('Agent created successfully with ID:', agentId);
+    
+    // Verify the knowledge base was included in the agent creation
     if (knowledgeBaseId) {
-      console.log('Verifying knowledge base inclusion...');
-      
-      // Check immediately if KB was included
+      console.log('Verifying knowledge base association...');
       try {
-        const agentDetails = await getAgentDetails(result.agent_id);
+        const agentDetails = await getAgentDetails(agentId);
         console.log('Created agent details:', JSON.stringify(agentDetails, null, 2));
         
-        // Check all possible KB locations
-        const kbLocations = [
-          agentDetails?.conversation_config?.agent?.knowledge_base?.document_ids,
-          agentDetails?.knowledge_base?.document_ids,
-          agentDetails?.agent?.knowledge_base?.document_ids,
-          agentDetails?.document_ids,
-          agentDetails?.conversation_config?.knowledge_base?.document_ids
-        ];
+        // Check if knowledge base was included in the prompt configuration
+        const hasKnowledgeBase = agentDetails?.conversation_config?.agent?.prompt?.knowledge_base?.some(
+          (kb: any) => kb.id === knowledgeBaseId
+        );
         
-        let hasKnowledgeBase = false;
-        for (const location of kbLocations) {
-          if (Array.isArray(location) && location.includes(knowledgeBaseId)) {
-            hasKnowledgeBase = true;
-            console.log('✅ SUCCESS! Knowledge base was included during agent creation!');
-            console.log('Found KB in:', location);
-            break;
-          }
-        }
-        
-        if (!hasKnowledgeBase) {
+        if (hasKnowledgeBase) {
+          console.log('✅ SUCCESS! Knowledge base was included during agent creation!');
+        } else {
           console.log('❌ Knowledge base not found in created agent, attempting association...');
           
-          // Try association methods
-          await associateKnowledgeBaseWithAgent(result.agent_id, knowledgeBaseId);
+          // Try association as fallback
+          await associateKnowledgeBaseWithAgent(agentId, knowledgeBaseId);
           
-          // Final check
-          const finalCheck = await getAgentDetails(result.agent_id);
-          const finalKbCheck = kbLocations.some(loc => 
-            Array.isArray(loc) && loc.includes(knowledgeBaseId)
+          // Final verification
+          const finalCheck = await getAgentDetails(agentId);
+          const finalHasKnowledgeBase = finalCheck?.conversation_config?.agent?.prompt?.knowledge_base?.some(
+            (kb: any) => kb.id === knowledgeBaseId
           );
           
-          if (finalKbCheck) {
+          if (finalHasKnowledgeBase) {
             console.log('✅ Knowledge base successfully associated after creation!');
           } else {
             console.log('⚠️ IMPORTANT: Knowledge base document created but not auto-associated');
             console.log('📝 Manual association required:');
-            console.log(`   1. Go to: https://elevenlabs.io/app/conversational-ai/agents/${result.agent_id}`);
+            console.log(`   1. Go to: https://elevenlabs.io/app/conversational-ai/agents/${agentId}`);
             console.log('   2. Click "Add document" in Knowledge base section');
             console.log('   3. Select your website knowledge document');
             console.log('   4. Enable the RAG toggle');
@@ -242,12 +375,14 @@ export const createAgent = async (data: AgentCreationData): Promise<string> => {
       } catch (error) {
         console.error('Error verifying knowledge base:', error);
       }
+    } else {
+      console.log('No knowledge base was created, skipping association.');
     }
 
     // Store agent creation data for future reference
-    await storeAgentMetadata(result.agent_id, data);
+    await storeAgentMetadata(agentId, data);
 
-    return result.agent_id;
+    return agentId;
 
   } catch (error) {
     console.error('Error creating agent:', error);
@@ -261,7 +396,7 @@ export const createAgent = async (data: AgentCreationData): Promise<string> => {
 };
 
 // Create a knowledge base document from website URL and return its ID
-const createWebsiteKnowledgeBase = async (websiteUrl: string, companyName: string): Promise<string> => {
+export const createWebsiteKnowledgeBase = async (websiteUrl: string, companyName: string): Promise<string> => {
   try {
     console.log(`Creating knowledge base document from website ${websiteUrl}...`);
     
@@ -343,21 +478,22 @@ const createWebsiteKnowledgeBase = async (websiteUrl: string, companyName: strin
   }
 };
 
-// Associate knowledge base document with an agent - comprehensive approach
-const associateKnowledgeBaseWithAgent = async (agentId: string, knowledgeBaseId: string): Promise<void> => {
+// Associate knowledge base document with an agent using the correct API structure
+export const associateKnowledgeBaseWithAgent = async (agentId: string, knowledgeBaseId: string): Promise<void> => {
   try {
     // Get the API key
     let apiKey = await getElevenLabsApiKey();
     
-    // Use hardcoded API key as fallback if not found
     if (!apiKey) {
-      console.warn('No API key found for knowledge base association, using hardcoded key as fallback');
-      apiKey = "sk_3597e0fc22733d1bdaec567f567f34863ef4c6e2b2a20488";
+      console.warn('No API key found for knowledge base association, trying environment variable');
+      apiKey = import.meta.env.VITE_ELEVENLABS_API_KEY;
     }
     
     if (!apiKey) {
       throw new Error('No ElevenLabs API key found for knowledge base association.');
     }
+
+    console.log(`Attempting to associate knowledge base document ${knowledgeBaseId} with agent ${agentId}...`);
 
     // First get the current agent configuration
     const getResponse = await fetch(`https://api.elevenlabs.io/v1/convai/agents/${agentId}`, {
@@ -372,17 +508,20 @@ const associateKnowledgeBaseWithAgent = async (agentId: string, knowledgeBaseId:
     }
 
     const currentAgent = await getResponse.json();
-
-    // Method 1: PATCH with correct knowledge base structure according to API docs
-    const patchPayload = {
+    
+    // Update the agent with proper knowledge base structure in prompt configuration
+    const updatedAgent = {
+      ...currentAgent,
       conversation_config: {
+        ...currentAgent.conversation_config,
         agent: {
+          ...currentAgent.conversation_config?.agent,
           prompt: {
             ...currentAgent.conversation_config?.agent?.prompt,
             knowledge_base: [
               {
                 type: "url",
-                name: `Knowledge Base Document ${knowledgeBaseId}`,
+                name: `Knowledge Base Document`,
                 id: knowledgeBaseId,
                 usage_mode: "prompt"
               }
@@ -392,164 +531,62 @@ const associateKnowledgeBaseWithAgent = async (agentId: string, knowledgeBaseId:
       }
     };
 
-    let updateResponse = await fetch(`https://api.elevenlabs.io/v1/convai/agents/${agentId}`, {
+    const updateResponse = await fetch(`https://api.elevenlabs.io/v1/convai/agents/${agentId}`, {
       method: 'PATCH',
       headers: {
         'xi-api-key': apiKey,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(patchPayload),
+      body: JSON.stringify(updatedAgent),
     });
 
-    let responseText = await updateResponse.text();
-
-    if (!updateResponse.ok) {
-      // Method 2: Try with minimal payload structure
-      const minimalPayload = {
-        conversation_config: {
-          agent: {
-            prompt: {
-              knowledge_base: [
-                {
-                  type: "url",
-                  id: knowledgeBaseId,
-                  usage_mode: "prompt"
-                }
-              ]
-            }
-          }
-        }
-      };
-
-      updateResponse = await fetch(`https://api.elevenlabs.io/v1/convai/agents/${agentId}`, {
-        method: 'PATCH',
-        headers: {
-          'xi-api-key': apiKey,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(minimalPayload),
-      });
-
-      responseText = await updateResponse.text();
+    if (updateResponse.ok) {
+      console.log('✅ Successfully associated knowledge base document with agent!');
+      return;
     }
-
-    if (!updateResponse.ok) {
-      // Method 3: Try merging with existing agent config
-      const fullMergePayload = {
-        name: currentAgent.name,
-        conversation_config: {
-          ...currentAgent.conversation_config,
-          agent: {
-            ...currentAgent.conversation_config?.agent,
-            prompt: {
-              ...currentAgent.conversation_config?.agent?.prompt,
-              knowledge_base: [
-                {
-                  type: "url",
-                  name: `Knowledge Base Document ${knowledgeBaseId}`,
-                  id: knowledgeBaseId,
-                  usage_mode: "prompt"
-                }
-              ]
-            }
+    
+    // If the full update failed, try with minimal payload
+    console.log(`Full update method failed (${updateResponse.status}). Trying minimal update...`);
+    
+    const minimalPayload = {
+      conversation_config: {
+        agent: {
+          prompt: {
+            knowledge_base: [
+              {
+                type: "url",
+                id: knowledgeBaseId,
+                usage_mode: "prompt"
+              }
+            ]
           }
         }
-      };
-
-      updateResponse = await fetch(`https://api.elevenlabs.io/v1/convai/agents/${agentId}`, {
-        method: 'PATCH',
-        headers: {
-          'xi-api-key': apiKey,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(fullMergePayload),
-      });
-
-      responseText = await updateResponse.text();
-    }
-
-    if (!updateResponse.ok) {
-      // Method 4: Try agent-specific knowledge base endpoints
-      const endpoints = [
-        `https://api.elevenlabs.io/v1/convai/agents/${agentId}/knowledge-base`,
-        `https://api.elevenlabs.io/v1/convai/agents/${agentId}/knowledge-base/add`,
-        `https://api.elevenlabs.io/v1/convai/agents/${agentId}/documents`,
-        `https://api.elevenlabs.io/v1/convai/agents/${agentId}/knowledge-base/${knowledgeBaseId}`
-      ];
-
-      for (const endpoint of endpoints) {
-        const payloads = [
-          { document_ids: [knowledgeBaseId] },
-          { document_id: knowledgeBaseId },
-          { id: knowledgeBaseId },
-          knowledgeBaseId
-        ];
-
-        for (const payload of payloads) {
-          try {
-            const response = await fetch(endpoint, {
-              method: 'POST',
-              headers: {
-                'xi-api-key': apiKey,
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify(payload),
-            });
-
-            const text = await response.text();
-
-            if (response.ok || response.status === 201) {
-              updateResponse = response;
-              responseText = text;
-              break;
-            }
-          } catch (e) {
-            // Continue to next payload
-          }
-        }
-
-        if (updateResponse.ok) break;
       }
-    }
+    };
 
-    // Final verification
-    await new Promise(resolve => setTimeout(resolve, 2000));
-
-    const verifyResponse = await fetch(`https://api.elevenlabs.io/v1/convai/agents/${agentId}`, {
-      method: 'GET',
+    const minimalResponse = await fetch(`https://api.elevenlabs.io/v1/convai/agents/${agentId}`, {
+      method: 'PATCH',
       headers: {
         'xi-api-key': apiKey,
+        'Content-Type': 'application/json',
       },
+      body: JSON.stringify(minimalPayload),
     });
 
-    if (verifyResponse.ok) {
-      const verifiedAgent = await verifyResponse.json();
-
-      // Check all possible locations for knowledge base
-      const possiblePaths = [
-        verifiedAgent.conversation_config?.agent?.prompt?.knowledge_base,
-        verifiedAgent.conversation_config?.agent?.knowledge_base?.document_ids,
-        verifiedAgent.knowledge_base?.document_ids,
-        verifiedAgent.agent?.knowledge_base?.document_ids,
-        verifiedAgent.documents,
-        verifiedAgent.knowledge_base
-      ];
-
-      for (const path of possiblePaths) {
-        if (Array.isArray(path)) {
-          const hasKnowledge = path.some(item => 
-            (typeof item === 'string' && item === knowledgeBaseId) ||
-            (typeof item === 'object' && item.id === knowledgeBaseId)
-          );
-          if (hasKnowledge) {
-            return;
-          }
-        }
-      }
+    if (minimalResponse.ok) {
+      console.log('✅ Successfully associated knowledge base document with agent using minimal update!');
+      return;
     }
 
     // If we reach here, automatic association failed
-    throw new Error('Knowledge base association could not be automatically completed. You may need to manually associate it in the ElevenLabs dashboard.');
+    console.error(`❌ All automatic association methods failed. Status codes: Update: ${updateResponse.status}, Minimal: ${minimalResponse.status}`);
+    console.log('⚠️ Please manually associate the knowledge base document with the agent through the ElevenLabs dashboard:');
+    console.log(`1. Go to: https://elevenlabs.io/app/conversational-ai/agents/${agentId}`);
+    console.log('2. Click "Add document" in Knowledge base section');
+    console.log('3. Select your website knowledge document');
+    console.log('4. Enable the RAG toggle');
+    
+    throw new Error('Knowledge base association could not be automatically completed. Manual association may be required.');
 
   } catch (error) {
     console.error('❌ Error in knowledge base association:', error);
@@ -786,7 +823,7 @@ export const getKnowledgeBaseDocuments = async () => {
       throw new Error('No ElevenLabs API key found.');
     }
 
-    const response = await fetch('https://api.elevenlabs.io/v1/convai/knowledge-base/documents', {
+    const response = await fetch('https://api.elevenlabs.io/v1/convai/knowledge-base', {
       method: 'GET',
       headers: {
         'xi-api-key': apiKey,
@@ -803,4 +840,223 @@ export const getKnowledgeBaseDocuments = async () => {
     console.error('Error fetching knowledge base documents:', error);
     throw error;
   }
-}; 
+};
+
+// Associate an existing knowledge base document with an agent
+export const associateExistingKnowledgeBase = async (agentId: string, knowledgeBaseId: string, knowledgeBaseName?: string): Promise<void> => {
+  try {
+    console.log(`Associating existing knowledge base ${knowledgeBaseId} with agent ${agentId}...`);
+    
+    // Get the API key
+    let apiKey = await getElevenLabsApiKey();
+    
+    if (!apiKey) {
+      console.warn('No API key found for knowledge base association, trying environment variable');
+      apiKey = import.meta.env.VITE_ELEVENLABS_API_KEY;
+    }
+    
+    if (!apiKey) {
+      throw new Error('No ElevenLabs API key found for knowledge base association.');
+    }
+
+    // First get the current agent configuration
+    const getResponse = await fetch(`https://api.elevenlabs.io/v1/convai/agents/${agentId}`, {
+      method: 'GET',
+      headers: {
+        'xi-api-key': apiKey,
+      },
+    });
+
+    if (!getResponse.ok) {
+      throw new Error(`Failed to get agent details: ${getResponse.status}`);
+    }
+
+    const currentAgent = await getResponse.json();
+    
+    // Get existing knowledge base array or create new one
+    const existingKnowledgeBase = currentAgent?.conversation_config?.agent?.prompt?.knowledge_base || [];
+    
+    // Check if this knowledge base is already associated
+    const isAlreadyAssociated = existingKnowledgeBase.some((kb: any) => kb.id === knowledgeBaseId);
+    
+    if (isAlreadyAssociated) {
+      console.log('Knowledge base is already associated with this agent.');
+      return;
+    }
+    
+    // Add the new knowledge base to the existing array
+    const updatedKnowledgeBase = [
+      ...existingKnowledgeBase,
+      {
+        type: "url",
+        name: knowledgeBaseName || `Knowledge Base Document`,
+        id: knowledgeBaseId,
+        usage_mode: "prompt"
+      }
+    ];
+    
+    // Update the agent with the new knowledge base
+    const updatedAgent = {
+      ...currentAgent,
+      conversation_config: {
+        ...currentAgent.conversation_config,
+        agent: {
+          ...currentAgent.conversation_config?.agent,
+          prompt: {
+            ...currentAgent.conversation_config?.agent?.prompt,
+            knowledge_base: updatedKnowledgeBase
+          }
+        }
+      }
+    };
+
+    const updateResponse = await fetch(`https://api.elevenlabs.io/v1/convai/agents/${agentId}`, {
+      method: 'PATCH',
+      headers: {
+        'xi-api-key': apiKey,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(updatedAgent),
+    });
+
+    if (updateResponse.ok) {
+      console.log('✅ Successfully associated existing knowledge base document with agent!');
+      return;
+    } else {
+      const errorText = await updateResponse.text();
+      console.error(`Failed to associate knowledge base: ${updateResponse.status} - ${errorText}`);
+      throw new Error(`Failed to associate knowledge base: ${updateResponse.status}`);
+    }
+
+  } catch (error) {
+    console.error('❌ Error associating existing knowledge base:', error);
+    throw error;
+  }
+};
+
+// Remove a knowledge base document from an agent
+export const removeKnowledgeBaseFromAgent = async (agentId: string, knowledgeBaseId: string): Promise<void> => {
+  try {
+    console.log(`Removing knowledge base ${knowledgeBaseId} from agent ${agentId}...`);
+    
+    // Get the API key
+    let apiKey = await getElevenLabsApiKey();
+    
+    if (!apiKey) {
+      console.warn('No API key found for knowledge base removal, trying environment variable');
+      apiKey = import.meta.env.VITE_ELEVENLABS_API_KEY;
+    }
+    
+    if (!apiKey) {
+      throw new Error('No ElevenLabs API key found for knowledge base removal.');
+    }
+
+    // First get the current agent configuration
+    const getResponse = await fetch(`https://api.elevenlabs.io/v1/convai/agents/${agentId}`, {
+      method: 'GET',
+      headers: {
+        'xi-api-key': apiKey,
+      },
+    });
+
+    if (!getResponse.ok) {
+      throw new Error(`Failed to get agent details: ${getResponse.status}`);
+    }
+
+    const currentAgent = await getResponse.json();
+    
+    // Get existing knowledge base array and filter out the one to remove
+    const existingKnowledgeBase = currentAgent?.conversation_config?.agent?.prompt?.knowledge_base || [];
+    const updatedKnowledgeBase = existingKnowledgeBase.filter((kb: any) => kb.id !== knowledgeBaseId);
+    
+    // Update the agent with the filtered knowledge base array
+    const updatedAgent = {
+      ...currentAgent,
+      conversation_config: {
+        ...currentAgent.conversation_config,
+        agent: {
+          ...currentAgent.conversation_config?.agent,
+          prompt: {
+            ...currentAgent.conversation_config?.agent?.prompt,
+            knowledge_base: updatedKnowledgeBase
+          }
+        }
+      }
+    };
+
+    const updateResponse = await fetch(`https://api.elevenlabs.io/v1/convai/agents/${agentId}`, {
+      method: 'PATCH',
+      headers: {
+        'xi-api-key': apiKey,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(updatedAgent),
+    });
+
+    if (updateResponse.ok) {
+      console.log('✅ Successfully removed knowledge base document from agent!');
+      return;
+    } else {
+      const errorText = await updateResponse.text();
+      console.error(`Failed to remove knowledge base: ${updateResponse.status} - ${errorText}`);
+      throw new Error(`Failed to remove knowledge base: ${updateResponse.status}`);
+    }
+
+  } catch (error) {
+    console.error('❌ Error removing knowledge base from agent:', error);
+    throw error;
+  }
+};
+
+// Update an existing agent's voice to use Sarah's voice
+export const updateAgentVoice = async (agentId: string): Promise<void> => {
+  try {
+    console.log(`Updating agent ${agentId} voice to Sarah...`);
+    
+    const apiKey = await getElevenLabsApiKey();
+    if (!apiKey) {
+      throw new Error('No ElevenLabs API key found.');
+    }
+
+    // Get current agent configuration
+    const currentAgent = await getAgentDetails(agentId);
+    
+    // Update with Sarah's voice configuration
+    const voiceUpdate = {
+      conversation_config: {
+        ...currentAgent.conversation_config,
+        agent: {
+          ...currentAgent.conversation_config?.agent
+        },
+        tts: {
+          voice_id: 'EXAVITQu4vr4xnSDxMaL', // Sarah's voice ID
+          voice_settings: {
+            stability: 0.5,
+            similarity_boost: 0.75,
+            style: 0.0,
+            use_speaker_boost: true
+          }
+        }
+      }
+    };
+
+    const response = await fetch(`https://api.elevenlabs.io/v1/convai/agents/${agentId}`, {
+      method: 'PATCH',
+      headers: {
+        'xi-api-key': apiKey,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(voiceUpdate),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to update agent voice: ${response.status}`);
+    }
+
+    console.log('✅ Agent voice updated to Sarah successfully!');
+    return await response.json();
+  } catch (error) {
+    console.error('Error updating agent voice:', error);
+    throw error;
+  }
+};

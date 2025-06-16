@@ -9,9 +9,17 @@ import {
   Building2,
   MessageCircle,
   Loader2,
-  ExternalLink
+  ExternalLink,
+  BookOpen,
+  AlertCircle,
+  CheckCircle
 } from 'lucide-react';
-import { getAgentDetails } from '../createagent/services/agentCreationService';
+import { 
+  getAgentDetails, 
+  associateKnowledgeBaseWithAgent,
+  createWebsiteKnowledgeBase,
+  updateAgentVoice
+} from '../createagent/services/agentCreationService';
 import WebsiteIframe from '@/components/ui/WebsiteIframe';
 
 interface AgentDetails {
@@ -21,17 +29,45 @@ interface AgentDetails {
     agent?: {
       prompt?: {
         prompt: string;
+        knowledge_base?: Array<{
+          type: string;
+          name?: string;
+          id: string;
+          usage_mode: string;
+        }>;
       };
       first_message?: string;
       language?: string;
+      knowledge_base?: {
+        enabled?: boolean;
+        document_ids?: string[];
+      };
+    };
+    knowledge_base?: {
+      enabled?: boolean;
+      document_ids?: string[];
     };
   };
   agent?: {
     prompt?: {
       prompt: string;
+      knowledge_base?: Array<{
+        type: string;
+        name?: string;
+        id: string;
+        usage_mode: string;
+      }>;
     };
     first_message?: string;
     language?: string;
+    knowledge_base?: {
+      enabled?: boolean;
+      document_ids?: string[];
+    };
+  };
+  knowledge_base?: {
+    enabled?: boolean;
+    document_ids?: string[];
   };
   prompt?: {
     prompt: string;
@@ -65,6 +101,31 @@ const AgentPage = () => {
   const [localAgent, setLocalAgent] = useState<CreatedAgentData | null>(createdAgent);
   const [micPermissionGranted, setMicPermissionGranted] = useState(false);
   const [micPermissionRequested, setMicPermissionRequested] = useState(false);
+  const [hasKnowledgeBase, setHasKnowledgeBase] = useState<boolean | null>(null);
+  const [loadingAssociation, setLoadingAssociation] = useState(false);
+  const [loadingVoiceUpdate, setLoadingVoiceUpdate] = useState(false);
+
+  // Helper to check if agent has knowledge base
+  const checkKnowledgeBase = (details: AgentDetails): boolean => {
+    // Check the new structure: conversation_config.agent.prompt.knowledge_base array
+    const promptKnowledgeBase = details?.conversation_config?.agent?.prompt?.knowledge_base;
+    if (Array.isArray(promptKnowledgeBase) && promptKnowledgeBase.length > 0) {
+      return true;
+    }
+    
+    // Check all possible legacy locations for knowledge base documents
+    const kbLocations = [
+      details?.conversation_config?.agent?.knowledge_base?.document_ids,
+      details?.knowledge_base?.document_ids,
+      details?.agent?.knowledge_base?.document_ids,
+      details?.conversation_config?.knowledge_base?.document_ids
+    ];
+    
+    // Check if any location has document IDs
+    return kbLocations.some(loc => 
+      Array.isArray(loc) && loc.length > 0
+    );
+  };
 
   // Load ElevenLabs widget script
   useEffect(() => {
@@ -145,6 +206,9 @@ const AgentPage = () => {
         setAgentDetails(details);
         console.log('Loaded agent details:', details);
         
+        // Check if agent has knowledge base
+        setHasKnowledgeBase(checkKnowledgeBase(details));
+        
         // If we don't have createdAgent data from navigation state,
         // create a minimal version from the fetched details
         if (!localAgent) {
@@ -181,6 +245,86 @@ const AgentPage = () => {
 
     fetchAgentDetails();
   }, [agentId, localAgent, toast]);
+
+  // Handle manual association of knowledge base
+  const handleAssociateKnowledgeBase = async () => {
+    if (!agentId || !localAgent?.websiteUrl) return;
+
+    setLoadingAssociation(true);
+    try {
+      toast({
+        title: "Creating Knowledge Base",
+        description: "Creating knowledge base from website content...",
+      });
+      
+      // First, create a knowledge base from the website URL
+      const knowledgeBaseId = await createWebsiteKnowledgeBase(
+        localAgent.websiteUrl,
+        localAgent.companyName || 'My Company'
+      );
+      
+      toast({
+        title: "Knowledge Base Created",
+        description: "Now associating with your agent...",
+      });
+      
+      // Then associate the knowledge base with the agent
+      await associateKnowledgeBaseWithAgent(agentId, knowledgeBaseId);
+      
+      // Refresh agent details to confirm association
+      const updatedDetails = await getAgentDetails(agentId);
+      setAgentDetails(updatedDetails);
+      setHasKnowledgeBase(checkKnowledgeBase(updatedDetails));
+      
+      toast({
+        title: "Success!",
+        description: "Knowledge base associated with agent successfully.",
+      });
+    } catch (error) {
+      console.error('Error associating knowledge base:', error);
+      toast({
+        title: "Association Failed",
+        description: "Failed to associate knowledge base. Try again or check ElevenLabs dashboard.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoadingAssociation(false);
+    }
+  };
+
+  // Handle manual voice update to Sarah
+  const handleUpdateVoice = async () => {
+    if (!agentId) return;
+
+    setLoadingVoiceUpdate(true);
+    try {
+      toast({
+        title: "Updating Voice",
+        description: "Updating agent voice to Sarah...",
+      });
+      
+      // Update the agent's voice to Sarah
+      await updateAgentVoice(agentId);
+      
+      // Refresh agent details to confirm the update
+      const updatedDetails = await getAgentDetails(agentId);
+      setAgentDetails(updatedDetails);
+      
+      toast({
+        title: "Voice Updated!",
+        description: "Agent voice has been updated to Sarah. Refresh the page to see the changes.",
+      });
+    } catch (error) {
+      console.error('Error updating agent voice:', error);
+      toast({
+        title: "Voice Update Failed",
+        description: "Failed to update agent voice. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoadingVoiceUpdate(false);
+    }
+  };
 
   if (isLoadingAgent) {
     return (
@@ -231,15 +375,56 @@ const AgentPage = () => {
                 <img src="/DYOTA_logo-removebg-preview.png" alt="DYOTA Logo" className="h-12 w-auto" />
                 <span className="text-white font-semibold">Voice Bolt</span>
               </div>
-              <a 
-                href={localAgent.websiteUrl} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="text-white hover:underline text-sm flex items-center pointer-events-auto"
-              >
-                <ExternalLink className="w-3 h-3 mr-1" />
-                Open Website
-              </a>
+              <div className="flex items-center space-x-2">
+                {hasKnowledgeBase !== null && (
+                  <div className="bg-black/60 backdrop-blur-sm rounded-full px-3 py-1.5 flex items-center space-x-2 pointer-events-auto">
+                    <BookOpen className={`w-4 h-4 ${hasKnowledgeBase ? 'text-green-400' : 'text-yellow-400'}`} />
+                    <span className="text-white text-xs">
+                      {hasKnowledgeBase ? 'Knowledge base active' : 'No knowledge base'}
+                    </span>
+                    {!hasKnowledgeBase && !loadingAssociation && (
+                      <Button 
+                        size="sm" 
+                        variant="ghost" 
+                        className="h-6 text-xs text-white hover:text-white hover:bg-white/20"
+                        onClick={handleAssociateKnowledgeBase}
+                      >
+                        Fix
+                      </Button>
+                    )}
+                    {loadingAssociation && (
+                      <Loader2 className="w-3 h-3 animate-spin text-white" />
+                    )}
+                  </div>
+                )}
+                <a 
+                  href={localAgent.websiteUrl} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-white hover:underline text-sm flex items-center pointer-events-auto"
+                >
+                  <ExternalLink className="w-3 h-3 mr-1" />
+                  Open Website
+                </a>
+                {/* Voice Update Button */}
+                <div className="bg-black/60 backdrop-blur-sm rounded-full px-3 py-1.5 flex items-center space-x-2 pointer-events-auto">
+                  <Bot className="w-4 h-4 text-blue-400" />
+                  <span className="text-white text-xs">Voice Settings</span>
+                  {!loadingVoiceUpdate && (
+                    <Button 
+                      size="sm" 
+                      variant="ghost" 
+                      className="h-6 text-xs text-white hover:text-white hover:bg-white/20"
+                      onClick={handleUpdateVoice}
+                    >
+                      Fix to Sarah
+                    </Button>
+                  )}
+                  {loadingVoiceUpdate && (
+                    <Loader2 className="w-3 h-3 animate-spin text-white" />
+                  )}
+                </div>
+              </div>
             </div>
           </div>
           
@@ -251,6 +436,9 @@ const AgentPage = () => {
                   {React.createElement('elevenlabs-convai', {
                     'agent-id': localAgent.agentId,
                     'variant': 'compact',
+                    'avatar-image-url': '/22221.png',
+                    'avatar-orb-color-1': '#2792dc',
+                    'avatar-orb-color-2': '#9ce6e6',
                     'text-input': 'false',
                     'text-only-mode': 'false'
                   })}
@@ -286,6 +474,71 @@ const AgentPage = () => {
           <div className="text-center">
             <p className="mb-4 text-lg text-gray-600">No website preview available</p>
             
+            {/* Knowledge Base Status */}
+            {agentDetails && (
+              <div className="mb-6 flex flex-col items-center">
+                {hasKnowledgeBase ? (
+                  <div className="flex items-center text-green-600 mb-2">
+                    <CheckCircle className="w-5 h-5 mr-2" />
+                    <span>Knowledge base is connected</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center text-yellow-600 mb-2">
+                    <AlertCircle className="w-5 h-5 mr-2" />
+                    <span>No knowledge base detected</span>
+                  </div>
+                )}
+                
+                {!hasKnowledgeBase && !loadingAssociation && (
+                  <Button 
+                    variant="outline"
+                    size="sm"
+                    onClick={handleAssociateKnowledgeBase}
+                    className="mt-2"
+                  >
+                    <BookOpen className="w-4 h-4 mr-2" />
+                    Attempt to fix knowledge base
+                  </Button>
+                )}
+                
+                {loadingAssociation && (
+                  <div className="flex items-center mt-2">
+                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                    <span className="text-sm">Associating knowledge base...</span>
+                  </div>
+                )}
+              </div>
+            )}
+            
+            {/* Voice Status */}
+            {agentDetails && (
+              <div className="mb-6 flex flex-col items-center">
+                <div className="flex items-center text-blue-600 mb-2">
+                  <Bot className="w-5 h-5 mr-2" />
+                  <span>Update agent voice to Sarah</span>
+                </div>
+                
+                {!loadingVoiceUpdate && (
+                  <Button 
+                    variant="outline"
+                    size="sm"
+                    onClick={handleUpdateVoice}
+                    className="mt-2"
+                  >
+                    <Bot className="w-4 h-4 mr-2" />
+                    Fix Voice to Sarah
+                  </Button>
+                )}
+                
+                {loadingVoiceUpdate && (
+                  <div className="flex items-center mt-2">
+                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                    <span className="text-sm">Updating voice...</span>
+                  </div>
+                )}
+              </div>
+            )}
+            
             {/* ElevenLabs Widget - centered when no website */}
             {isWidgetLoaded && localAgent ? (
               micPermissionGranted ? (
@@ -293,6 +546,9 @@ const AgentPage = () => {
                   {React.createElement('elevenlabs-convai', {
                     'agent-id': localAgent.agentId,
                     'variant': 'compact',
+                    'avatar-image-url': '/22221.png',
+                    'avatar-orb-color-1': '#2792dc',
+                    'avatar-orb-color-2': '#9ce6e6',
                     'text-input': 'false',
                     'text-only-mode': 'false'
                   })}

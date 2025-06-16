@@ -11,5 +11,9 @@ export {
   updateAgent,
   deleteAgent,
   addWebsiteToAgentKnowledgeBase,
-  getKnowledgeBaseDocuments
+  getKnowledgeBaseDocuments,
+  associateKnowledgeBaseWithAgent,
+  associateExistingKnowledgeBase,
+  removeKnowledgeBaseFromAgent,
+  createWebsiteKnowledgeBase
 } from './services/agentCreationService'; 
