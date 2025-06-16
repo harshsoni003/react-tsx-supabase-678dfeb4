@@ -1,12 +1,14 @@
-
 import FireCrawlApp from '@mendable/firecrawl-js';
 
-const FIRECRAWL_API_KEY = 'fc-f7c406b287924a2888e065c47e171c2e';
+const FIRECRAWL_API_KEY = process.env.REACT_APP_FIRECRAWL_API_KEY || '';
 
 class FireCrawlService {
   private app: FireCrawlApp;
 
   constructor() {
+    if (!FIRECRAWL_API_KEY) {
+      console.warn('FireCrawl API key is not set. Please add REACT_APP_FIRECRAWL_API_KEY to your .env file.');
+    }
     this.app = new FireCrawlApp({ apiKey: FIRECRAWL_API_KEY });
   }
 
