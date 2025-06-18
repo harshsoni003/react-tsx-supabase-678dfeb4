@@ -11,16 +11,15 @@ import HeroSection from '@/components/landing/HeroSection';
 
 import Footer from '@/components/landing/Footer';
 import TalkWithBotButton from '@/components/landing/TalkWithBotButton';
-import CreateAgentModal from '@/components/landing/CreateAgentModal';
 import VoiceChatModal from '@/components/landing/VoiceChatModal';
 import PricingSection from '@/components/landing/PricingSection';
 import FAQSection from '@/components/landing/FAQSection';
+import CTA from '@/components/landing/CTA';
 import { Mic } from 'lucide-react';
 
 const Index = () => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [showCreateModal, setShowCreateModal] = useState(false);
   const [showVoiceChat, setShowVoiceChat] = useState(false);
   const { profile, loading: profileLoading } = useUserProfile(user);
   const navigate = useNavigate();
@@ -48,10 +47,10 @@ const Index = () => {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Show CreateAgentModal if user just signed in
+  // Navigate to create-agent route if user just signed in
   useEffect(() => {
     if (searchParams.get('newSignIn') === 'true' && user) {
-      setShowCreateModal(true);
+      navigate('/create-agent');
       // Remove the newSignIn parameter from URL
       navigate('/', { replace: true });
     }
@@ -75,13 +74,8 @@ const Index = () => {
   };
 
   const handleCreateAgent = () => {
-    if (user) {
-      // If user is logged in, show modal instead of navigating
-      setShowCreateModal(true);
-    } else {
-      // If not logged in, show modal
-      setShowCreateModal(true);
-    }
+    // Navigate to the create agent page instead of showing a modal
+    navigate('/create-agent');
   };
 
   const handleTalkWithBot = () => {
@@ -110,6 +104,7 @@ const Index = () => {
         />
       
         <PricingSection onCreateAgent={handleCreateAgent} />
+        <CTA onCreateAgent={handleCreateAgent} />
         <FAQSection />
         <Footer />
       </main>
@@ -117,11 +112,7 @@ const Index = () => {
       {/* Fixed Talk Button */}
       <TalkWithBotButton onClick={handleTalkWithBot} />
 
-      {/* Modals */}
-      <CreateAgentModal 
-        isOpen={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
-      />
+      {/* Voice Chat Modal */}
       <VoiceChatModal 
         isOpen={showVoiceChat}
         onClose={() => setShowVoiceChat(false)}

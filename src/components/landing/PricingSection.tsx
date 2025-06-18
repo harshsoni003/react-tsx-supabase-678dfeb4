@@ -1,25 +1,36 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Check } from 'lucide-react';
+import { Check, X } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 
 interface PricingSectionProps {
   onCreateAgent?: () => void;
 }
 
+interface Feature {
+  name: string;
+  starter: boolean | string;
+  pro: boolean | string;
+}
+
 const PricingSection = ({ onCreateAgent }: PricingSectionProps) => {
   const [showComparison, setShowComparison] = useState(false);
 
-  const features = [
-    { name: 'Basic Analytics', starter: true, pro: true },
-    { name: 'Up to 5 team members', starter: true, pro: true },
-    { name: 'Basic support', starter: true, pro: true },
-    { name: 'Advanced Analytics', starter: false, pro: true },
-    { name: 'Up to 20 team members', starter: false, pro: true },
-    { name: 'Priority support', starter: false, pro: true },
-    { name: 'Custom integrations', starter: true, pro: true },
-    { name: 'Unlimited team members', starter: true, pro: true },
-    { name: '24/7 phone support', starter: true, pro: true },
+  const features: Feature[] = [
+    { name: 'Voice AI assistant', starter: "fixed setup", pro: "custom setup" },
+    { name: 'Included call minutes', starter: "250 min(for 1 month)", pro: "1100 min(for 1 month)" },
+    { name: 'Customization', starter: false, pro: "Fully customized" },
+    { name: 'Call tracking', starter: false, pro: "Full analytics" },
+    { name: 'Automation setup', starter: false, pro: "Complete setup" },
+    { name: 'Implementation', starter: "Initial assistance", pro: "Full assistance" },
+    { name: 'Support', starter: "Email only", pro: "Dedicated Slack" },
+    { name: 'Post-launch support', starter: false, pro: "2 sessions" },
+    { name: 'Logo branding', starter: "Voicebolt logo", pro: "Your logo" },
+    { name: 'Analytics dashboard', starter: false, pro: "Comprehensive" },
+    { name: 'Knowledge Base', starter: "Only website", pro: "Website, Social & Custom Business Knowledge, Online search" },
+    { name: 'Voice', starter: false, pro: "Custom Voice" },
+    { name: 'Cancellation policy', starter: false, pro: "Cancel anytime" }
+
   ];
 
   return (
@@ -27,7 +38,7 @@ const PricingSection = ({ onCreateAgent }: PricingSectionProps) => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
           <h2 className="text-4xl md:text-5xl font-bold mb-4">
-            Simple & Transparent Pricing
+            AI Voice Assistant Pricing
           </h2>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-8">
             Choose the plan that works best for your business needs
@@ -53,44 +64,46 @@ const PricingSection = ({ onCreateAgent }: PricingSectionProps) => {
                 <span className="text-gray-500 ml-2">/one-time</span>
               </div>
               <p className="text-gray-600 mb-8">
-                Perfect for small businesses looking to establish an online presence
+                Perfect for small businesses looking to try AI voice technology
               </p>
               
               <ul className="space-y-4 mb-10">
                 <li className="flex items-center">
                   <Check className="h-5 w-5 mr-2 text-black" />
-                  <span>Single Voice Agent</span>
+                  <span>Preview AI Voice Assistant</span>
                 </li>
                 <li className="flex items-center">
                   <Check className="h-5 w-5 mr-2 text-black" />
-                  <span>Basic customization</span>
+                  <span>Initial assistance</span>
                 </li>
                 <li className="flex items-center">
                   <Check className="h-5 w-5 mr-2 text-black" />
-                  <span>5 hours of call time</span>
+                  <span>Basic email support</span>
                 </li>
                 <li className="flex items-center">
                   <Check className="h-5 w-5 mr-2 text-black" />
-                  <span>Email support</span>
+                  <span>250 minutes/month (Free for 1st month)</span>
                 </li>
                 <li className="flex items-center">
                   <Check className="h-5 w-5 mr-2 text-black" />
-                  <span>Analytics dashboard</span>
+                  <span>Additional calls: $22/month</span>
+                </li>
+                <li className="flex items-center">
+                  <Check className="h-5 w-5 mr-2 text-black" />
+                  <span>Integration within 24 hours</span>
+                </li>
+                <li className="flex items-center">
+                  <Check className="h-5 w-5 mr-2 text-black" />
+                  <span>Voicebolt logo included</span>
                 </li>
               </ul>
               
               <Button 
-                className="w-full mb-3 bg-black hover:bg-gray-800 text-white"
-                onClick={onCreateAgent}
-              >
-                Get Started
-              </Button>
-              
-              <Button 
                 variant="outline" 
-                className="w-full border-black text-black hover:bg-gray-100"
+                className="w-full border-black text-white bg-black hover:bg-gray-800 hover:text-white mb-4 flex items-center justify-center"
+                onClick={() => window.open('https://cal.com/voicebolt/15min', '_blank')}
               >
-                Or Book a Call
+                Book a Call
               </Button>
             </div>
 
@@ -104,52 +117,54 @@ const PricingSection = ({ onCreateAgent }: PricingSectionProps) => {
                 <span className="text-gray-500 ml-2">/one-time</span>
               </div>
               <p className="text-gray-600 mb-8">
-                For businesses that need advanced features and dedicated support
+                For businesses that need a fully customized AI voice solution
               </p>
               
               <ul className="space-y-4 mb-10">
                 <li className="flex items-center">
                   <Check className="h-5 w-5 mr-2 text-black" />
-                  <span>Multiple Voice Agents</span>
+                  <span>Fully customized AI voice assistant</span>
                 </li>
                 <li className="flex items-center">
                   <Check className="h-5 w-5 mr-2 text-black" />
-                  <span>Advanced customization</span>
+                  <span>Complete business knowledge integration</span>
                 </li>
                 <li className="flex items-center">
                   <Check className="h-5 w-5 mr-2 text-black" />
-                  <span>Unlimited call time</span>
+                  <span>Call tracking and analytics</span>
                 </li>
                 <li className="flex items-center">
                   <Check className="h-5 w-5 mr-2 text-black" />
-                  <span>Priority support</span>
+                  <span>Full automation setup</span>
                 </li>
                 <li className="flex items-center">
                   <Check className="h-5 w-5 mr-2 text-black" />
-                  <span>Advanced analytics & reporting</span>
+                  <span>Dedicated Slack support</span>
+                </li>
+                <li className="flex items-center">
+                  <Check className="h-5 w-5 mr-2 text-black" />
+                  <span>1100 minutes/month (Free for 1st month)</span>
+                </li>              
+                <li className="flex items-center">
+                  <Check className="h-5 w-5 mr-2 text-black" />
+                  <span>Your personalized logo</span>
                 </li>
               </ul>
               
               <Button 
-                className="w-full mb-3 bg-black hover:bg-gray-800 text-white"
-                onClick={onCreateAgent}
-              >
-                Get Started
-              </Button>
-              
-              <Button 
                 variant="outline" 
-                className="w-full border-black text-black hover:bg-gray-100"
+                className="w-full mb-4 bg-black hover:bg-gray-800 hover:text-white text-white flex items-center justify-center"
+                onClick={() => window.open('https://cal.com/voicebolt/15min', '_blank')}
               >
-                Or Book a Call
+                Book a Call
               </Button>
             </div>
           </div>
         ) : (
-          <div className="max-w-3xl mx-auto transition-all duration-500 ease-in-out">
+          <div className="max-w-4xl mx-auto transition-all duration-500 ease-in-out">
             <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
               <div className="grid grid-cols-3">
-                <div className="p-6  border-b border-gray-100">
+                <div className="p-6 border-b border-gray-100">
                   <span className="text-2xl font-semibold">Features</span>
                 </div>
                 <div className="p-6 border-b border-gray-100 text-center">
@@ -157,12 +172,14 @@ const PricingSection = ({ onCreateAgent }: PricingSectionProps) => {
                     <span className="text-3xl font-bold">$500</span>
                     <span className="text-gray-500 ml-2 text-sm">/one-time</span>
                   </div>
+                  <div className="text-sm text-gray-500 mt-1">Basic Package</div>
                 </div>
                 <div className="p-6 border-b border-gray-100 bg-gray-50 text-center">
                   <div className="flex items-baseline justify-center">
                     <span className="text-3xl font-bold">$5000</span>
                     <span className="text-gray-500 ml-2 text-sm">/one-time</span>
                   </div>
+                  <div className="text-sm text-gray-500 mt-1">Premium Package</div>
                 </div>
               </div>
               
@@ -172,17 +189,27 @@ const PricingSection = ({ onCreateAgent }: PricingSectionProps) => {
                     <span className="text-base">{feature.name}</span>
                   </div>
                   <div className="p-5 flex items-center justify-center">
-                    {feature.starter ? (
-                      <Check className="h-5 w-5 text-blue-500" />
+                    {typeof feature.starter === 'string' ? (
+                      <div className="flex items-center">
+                        <Check className="h-5 w-5 mr-2 text-green-500" />
+                        <span>{feature.starter}</span>
+                      </div>
+                    ) : feature.starter ? (
+                      <Check className="h-5 w-5 text-green-500" />
                     ) : (
-                      <span className="text-gray-300">-</span>
+                      <X className="h-5 w-5 text-red-500" />
                     )}
                   </div>
                   <div className="p-5 flex items-center justify-center bg-gray-50">
-                    {feature.pro ? (
-                      <Check className="h-5 w-5 text-blue-500" />
+                    {typeof feature.pro === 'string' ? (
+                      <div className="flex items-center">
+                        <Check className="h-5 w-5 mr-2 text-green-500" />
+                        <span>{feature.pro}</span>
+                      </div>
+                    ) : feature.pro ? (
+                      <Check className="h-5 w-5 text-green-500" />
                     ) : (
-                      <span className="text-gray-300">-</span>
+                      <X className="h-5 w-5 text-red-500" />
                     )}
                   </div>
                 </div>

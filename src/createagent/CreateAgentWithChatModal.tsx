@@ -111,10 +111,11 @@ const CreateAgentWithChatModal = ({ isOpen, onClose, onViewOnWebsite }: CreateAg
           // Stop the stream immediately as we just needed permission
           stream.getTracks().forEach(track => track.stop());
           
-          toast({
-            title: "Microphone Access Granted",
-            description: "You can now use voice chat with your agent.",
-          });
+          // Remove the microphone access granted toast
+          // toast({
+          //   title: "Microphone Access Granted",
+          //   description: "You can now use voice chat with your agent.",
+          // });
         } catch (error) {
           console.error('Microphone permission denied:', error);
           setMicPermissionGranted(false);
@@ -353,9 +354,16 @@ const CreateAgentWithChatModal = ({ isOpen, onClose, onViewOnWebsite }: CreateAg
     <Dialog open={isOpen} onOpenChange={handleCloseModal}>
       <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         {isLoadingAgent ? (
-          <div className="flex items-center justify-center p-8">
-            <Loader2 className="w-6 h-6 animate-spin mr-2" />
-            <span>Loading agent details...</span>
+          <div className="flex flex-col items-center justify-center p-8">
+            <img 
+              src="/DYOTA_logo-removebg-preview.png" 
+              alt="Loading Agent" 
+              className="w-32 h-32 animate-pulse mb-6" 
+            />
+            <div className="flex items-center">
+              <Loader2 className="w-6 h-6 animate-spin mr-3" />
+              <span className="text-xl font-semibold">Loading agent details...</span>
+            </div>
           </div>
         ) : (
           currentStep === 'create' ? renderCreationStep() : renderChatStep()

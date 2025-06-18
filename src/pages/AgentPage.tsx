@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useLocation } from 'react-router-dom';
+import { useParams, useLocation, Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -176,10 +176,11 @@ const AgentPage = () => {
           // Stop the stream immediately as we just needed permission
           stream.getTracks().forEach(track => track.stop());
           
-          toast({
-            title: "Microphone Access Granted",
-            description: "You can now use voice chat with the agent.",
-          });
+          // Remove this toast notification
+          // toast({
+          //   title: "Microphone Access Granted",
+          //   description: "You can now use voice chat with the agent.",
+          // });
         } catch (error) {
           console.error('Microphone permission denied:', error);
           setMicPermissionGranted(false);
@@ -329,9 +330,16 @@ const AgentPage = () => {
   if (isLoadingAgent) {
     return (
       <div className="container mx-auto max-w-4xl py-8">
-        <div className="flex items-center justify-center p-8">
-          <Loader2 className="w-6 h-6 animate-spin mr-2" />
-          <span>Loading agent details...</span>
+        <div className="flex flex-col items-center justify-center p-8">
+          <img 
+            src="/DYOTA_logo-removebg-preview.png" 
+            alt="Loading Agent" 
+            className="w-36 h-36 animate-pulse mb-6" 
+          />
+          <div className="flex items-center">
+            <Loader2 className="w-6 h-6 animate-spin mr-3" />
+            <span className="text-xl font-semibold">Loading agent details...</span>
+          </div>
         </div>
       </div>
     );
@@ -371,61 +379,12 @@ const AgentPage = () => {
           {/* Bottom overlay with branding */}
           <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-3 pointer-events-none">
             <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <img src="/DYOTA_logo-removebg-preview.png" alt="DYOTA Logo" className="h-12 w-auto" />
-                <span className="text-white font-semibold">Voice Bolt</span>
+              <a href="/pricing" target="_blank" rel="noopener noreferrer" className="flex items-center space-x-2 pointer-events-auto bg-white px-3 py-1.5 rounded-2xl shadow-md">
+                <img src="/DYOTA_logo-removebg-preview.png" alt="DYOTA Logo" className="h-10 w-auto" />
+                <span className="text-black font-semibold">Get Now</span>
+              </a>
               </div>
-              <div className="flex items-center space-x-2">
-                {hasKnowledgeBase !== null && (
-                  <div className="bg-black/60 backdrop-blur-sm rounded-full px-3 py-1.5 flex items-center space-x-2 pointer-events-auto">
-                    <BookOpen className={`w-4 h-4 ${hasKnowledgeBase ? 'text-green-400' : 'text-yellow-400'}`} />
-                    <span className="text-white text-xs">
-                      {hasKnowledgeBase ? 'Knowledge base active' : 'No knowledge base'}
-                    </span>
-                    {!hasKnowledgeBase && !loadingAssociation && (
-                      <Button 
-                        size="sm" 
-                        variant="ghost" 
-                        className="h-6 text-xs text-white hover:text-white hover:bg-white/20"
-                        onClick={handleAssociateKnowledgeBase}
-                      >
-                        Fix
-                      </Button>
-                    )}
-                    {loadingAssociation && (
-                      <Loader2 className="w-3 h-3 animate-spin text-white" />
-                    )}
-                  </div>
-                )}
-                <a 
-                  href={localAgent.websiteUrl} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-white hover:underline text-sm flex items-center pointer-events-auto"
-                >
-                  <ExternalLink className="w-3 h-3 mr-1" />
-                  Open Website
-                </a>
-                {/* Voice Update Button */}
-                <div className="bg-black/60 backdrop-blur-sm rounded-full px-3 py-1.5 flex items-center space-x-2 pointer-events-auto">
-                  <Bot className="w-4 h-4 text-blue-400" />
-                  <span className="text-white text-xs">Voice Settings</span>
-                  {!loadingVoiceUpdate && (
-                    <Button 
-                      size="sm" 
-                      variant="ghost" 
-                      className="h-6 text-xs text-white hover:text-white hover:bg-white/20"
-                      onClick={handleUpdateVoice}
-                    >
-                      Fix to Sarah
-                    </Button>
-                  )}
-                  {loadingVoiceUpdate && (
-                    <Loader2 className="w-3 h-3 animate-spin text-white" />
-                  )}
-                </div>
-              </div>
-            </div>
+             
           </div>
           
           {/* ElevenLabs Widget - positioned in the bottom right */}

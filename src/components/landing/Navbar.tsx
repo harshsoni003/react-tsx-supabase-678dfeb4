@@ -2,13 +2,13 @@ import React from 'react'
 import { Menu, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { Link } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 
 const menuItems = [
     { name: 'Home', href: '/' },
     { name: 'Book Slot', href: 'https://cal.com/voicebolt/15min', external: true },
     { name: 'Pricing', href: '#pricing' },
-    { name: 'FAQ', href: '#faq' },
+    { name: 'FAQ', href: '#faqs' },
 ]
 
 interface NavbarProps {
@@ -20,6 +20,8 @@ interface NavbarProps {
 const Navbar = ({ onCreateAgent, isLoggedIn, onSignOut }: NavbarProps) => {
     const [menuState, setMenuState] = React.useState(false)
     const [isScrolled, setIsScrolled] = React.useState(false)
+    const location = useLocation()
+    const navigate = useNavigate()
 
     React.useEffect(() => {
         const handleScroll = () => {
@@ -33,11 +35,41 @@ const Navbar = ({ onCreateAgent, isLoggedIn, onSignOut }: NavbarProps) => {
         setMenuState(false)
         
         if (href.startsWith('#')) {
-            // Scroll to section
-            const element = document.getElementById(href.substring(1))
-            if (element) {
-                element.scrollIntoView({ behavior: 'smooth' })
+            const sectionId = href.substring(1)
+            
+            // If we're not on the home page, navigate to home first
+            if (location.pathname !== '/') {
+                navigate(`/${href}`)
+                // Need to wait a bit for the navigation to complete before scrolling
+                setTimeout(() => {
+                    const element = document.getElementById(sectionId)
+                    if (element) {
+                        element.scrollIntoView({ behavior: 'smooth' })
+                    }
+                }, 100)
+            } else {
+                // If already on home page, just scroll and update URL
+                const element = document.getElementById(sectionId)
+                if (element) {
+                    element.scrollIntoView({ behavior: 'smooth' })
+                    // Update URL without page reload
+                    window.history.pushState({}, '', href)
+                }
             }
+        }
+    }
+
+    const handleHomeClick = (e: React.MouseEvent) => {
+        e.preventDefault()
+        setMenuState(false)
+        
+        if (location.pathname !== '/') {
+            navigate('/')
+        } else {
+            // If already on home page, scroll to top
+            window.scrollTo({ top: 0, behavior: 'smooth' })
+            // Update URL without the hash
+            window.history.pushState({}, '', '/')
         }
     }
     
@@ -49,14 +81,18 @@ const Navbar = ({ onCreateAgent, isLoggedIn, onSignOut }: NavbarProps) => {
                 <div className={cn('mx-auto mt-2 max-w-6xl px-6 transition-all duration-300 lg:px-12', isScrolled && 'bg-background/50 max-w-4xl rounded-2xl border backdrop-blur-lg lg:px-5')}>
                     <div className="relative flex flex-wrap items-center justify-between gap-6 py-3 lg:gap-0 lg:py-4">
                         <div className="flex w-full justify-between lg:w-auto">
-                            <div className="flex items-center space-x-2">
+                            <a 
+                                href="/" 
+                                onClick={handleHomeClick}
+                                className="flex items-center space-x-2 hover:opacity-90 transition-opacity"
+                            >
                                 <img 
                                     src="DYOTA_logo-removebg-preview.png" 
                                     alt="DYOTA Logo" 
                                     className="h-16 w-auto"
                                 />
                                 <span className="text-xl font-bold text-gray-900 dark:text-white">Voice Bolt</span>
-                            </div>
+                            </a>
 
                             <button
                                 onClick={() => setMenuState(!menuState)}
@@ -76,6 +112,13 @@ const Navbar = ({ onCreateAgent, isLoggedIn, onSignOut }: NavbarProps) => {
                                                 href={item.href}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
+                                                className="text-muted-foreground hover:text-accent-foreground block duration-150">
+                                                <span>{item.name}</span>
+                                            </a>
+                                        ) : item.href === '/' ? (
+                                            <a
+                                                href={item.href}
+                                                onClick={handleHomeClick}
                                                 className="text-muted-foreground hover:text-accent-foreground block duration-150">
                                                 <span>{item.name}</span>
                                             </a>
@@ -117,6 +160,13 @@ const Navbar = ({ onCreateAgent, isLoggedIn, onSignOut }: NavbarProps) => {
                                                     onClick={() => setMenuState(false)}>
                                                     <span>{item.name}</span>
                                                 </a>
+                                            ) : item.href === '/' ? (
+                                                <a
+                                                    href={item.href}
+                                                    onClick={handleHomeClick}
+                                                    className="text-muted-foreground hover:text-accent-foreground block duration-150">
+                                                    <span>{item.name}</span>
+                                                </a>
                                             ) : item.href.startsWith('/') ? (
                                                 <Link
                                                     to={item.href}
@@ -132,6 +182,7 @@ const Navbar = ({ onCreateAgent, isLoggedIn, onSignOut }: NavbarProps) => {
                                                             e.preventDefault()
                                                             handleMenuItemClick(item.href)
                                                         }
+                                                        setMenuState(false)
                                                     }}
                                                     className="text-muted-foreground hover:text-accent-foreground block duration-150">
                                                     <span>{item.name}</span>

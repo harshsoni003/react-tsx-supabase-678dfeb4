@@ -24,6 +24,8 @@ import DashboardContent from "@/components/dashboard/DashboardContent";
 import ElevenLabs from "./pages/ElevenLabs";
 import AgentPage from "./pages/AgentPage";
 import PricingPage from "./pages/PricingPage";
+import { CreateAgentPage } from "./createagent";
+import Copyright from "./components/landing/Copyright";
 
 const App = () => {
   const queryClient = useMemo(() => new QueryClient({
@@ -107,12 +109,14 @@ const App = () => {
             <Route path="/profile" element={<Profile />} />
             <Route path="/elevenlabs" element={<ElevenLabs />} />
             <Route path="/agent/:agentId" element={<AgentPage />} />
+            <Route path="/create-agent" element={<CreateAgentPage />} />
             <Route path="/settings" element={<Settings />} />
-            <Route path="/signin" element={<SignIn />} />
-            <Route path="/signup" element={<SignUp />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/signin112" element={<SignIn />} />
+            <Route path="/signup112" element={<SignUp />} />
+            <Route path="/forgot-password112" element={<ForgotPassword />} />
+            <Route path="/reset-password112" element={<ResetPassword />} />
             <Route path="/pricing" element={<PricingPage />} />
+            <Route path="/copyright" element={<Copyright />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

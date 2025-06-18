@@ -1,10 +1,12 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { PricingSection, Navbar } from '@/components/landing';
 
 const PricingPage = () => {
+  const navigate = useNavigate();
+  
   const handleCreateAgent = () => {
-    console.log('Create agent clicked');
-    // Add your implementation here
+    navigate('/create-agent');
   };
 
   const handleSignOut = () => {

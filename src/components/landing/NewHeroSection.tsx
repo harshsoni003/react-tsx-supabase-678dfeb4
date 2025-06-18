@@ -173,10 +173,11 @@ export const NewHeroSection = ({ onCreateAgent, onTalkWithBot, isLoggedIn = fals
                                             onClick={onCreateAgent}
                                             size="lg"
                                             className="rounded-xl px-5 text-base">
-                                            <span className="text-nowrap">Create Your Voice Agent</span>
+                                            <span className="text-nowrap">Build Your Voice Agent</span>
+                                            <ArrowRight className="ml-2 h-4 w-4" />
                                         </Button>
                                     </div>
-                                    <Button
+                                    {/* <Button
                                         key={2}
                                         onClick={() => window.open('https://cal.com/voicebolt/15min', '_blank')}
                                         size="lg"
@@ -184,7 +185,7 @@ export const NewHeroSection = ({ onCreateAgent, onTalkWithBot, isLoggedIn = fals
                                         className="h-10.5 rounded-xl px-5">
                                         <span className="text-nowrap">Book a Slot</span>
                                         <ArrowRight className=" h-4 w-4" />
-                                    </Button>
+                                    </Button> */}
                                 </AnimatedGroup>
                             </div>
                         </div>

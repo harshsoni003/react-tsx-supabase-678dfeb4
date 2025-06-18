@@ -108,10 +108,6 @@ const TalkToAgent = ({
 
       // Pass the specific agent ID to connect to
       await startConversation(agentId);
-      toast({
-        title: "Connected!",
-        description: `You're now talking with ${agentDetails?.name || agentName || 'your agent'}.`
-      });
     } catch (error) {
       console.error('Error starting conversation:', error);
       toast({
@@ -125,10 +121,6 @@ const TalkToAgent = ({
   const handleEndCall = async () => {
     try {
       await stopConversation();
-      toast({
-        title: "Call Ended",
-        description: "Voice chat session has been terminated."
-      });
     } catch (error) {
       console.error('Error ending conversation:', error);
     }
@@ -136,10 +128,6 @@ const TalkToAgent = ({
 
   const handleToggleMute = () => {
     toggleMute(!isMicMuted);
-    toast({
-      title: isMicMuted ? "Microphone Unmuted" : "Microphone Muted",
-      description: isMicMuted ? "You can now speak to the agent." : "The agent can't hear you.",
-    });
   };
 
   const getStatusColor = () => {

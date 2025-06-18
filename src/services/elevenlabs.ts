@@ -271,7 +271,7 @@ export const useVoiceChat = () => {
 export const getElevenLabsApiKey = async (): Promise<string | null> => {
   try {
     // Hardcoded API key as fallback to ensure it always works
-    const HARDCODED_API_KEY = "sk_3597e0fc22733d1bdaec567f567f34863ef4c6e2b2a20488";
+    const HARDCODED_API_KEY = "sk_afff30844e8ff2452ed550c7bc0ab7084db0a78909d4a1a1";
     
     // First check if we have an API key in the environment variables
     if (ELEVENLABS_API_KEY) {
@@ -301,7 +301,7 @@ export const getElevenLabsApiKey = async (): Promise<string | null> => {
     console.error('Error fetching ElevenLabs API key:', error);
     
     // Last resort hardcoded fallback if any error occurred
-    const HARDCODED_API_KEY = "sk_3597e0fc22733d1bdaec567f567f34863ef4c6e2b2a20488";
+    const HARDCODED_API_KEY = "sk_afff30844e8ff2452ed550c7bc0ab7084db0a78909d4a1a1";
     console.log('Using hardcoded API key due to error');
     return HARDCODED_API_KEY;
   }

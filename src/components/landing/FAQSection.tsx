@@ -50,33 +50,27 @@ const FAQSection = () => {
 
   const faqs = [
     {
-      question: "How long does it take?",
-      answer: "Our voice agents can be set up and deployed within 24-48 hours after we have all the necessary information about your business needs and requirements."
+      question: "What types of AI Voice Agents do you offer?",
+      answer: "We offer customizable AI voice agents for sales, customer support, appointment booking, lead qualification, and general business inquiries. Each agent is trained on your specific business knowledge."
     },
     {
-      question: "Do you handle development too?",
-      answer: "Yes, Framer or custom-coded frontend if needed. (React & tailwind stack)"
+      question: "Can I integrate this with my existing website?",
+      answer: "Yes! Works with any platform - Framer, Webflow, WordPress, or Frontend Code."
     },
     {
-      question: "How do we start?",
-      answer: "Getting started is simple. Book a consultation call with our team, and we'll guide you through the process of creating your custom voice agent tailored to your specific business needs."
+      question: "How quickly can my AI voice agent be set up?",
+      answer: "Basic package is ready within 24 hours with simple setup. Custom builds takes 5-7 business days depending on your specific agent requirements and customization needs."
+    },
+    
+    {
+      question: "Is there a contract or can I cancel anytime?",
+      answer: "For the basic package, there is No cancellations allowed.For the premium packagem, You can cancel anytime."
     },
     {
-      question: "Who do you work with?",
-      answer: "We work with businesses of all sizes across various industries, including e-commerce, healthcare, education, finance, and professional services. Our solutions are particularly valuable for businesses looking to enhance customer engagement and streamline operations."
+      question: "How do I get started?",
+      answer: "Book a consultation call with our team to discuss your custom voice agent tailored to your business needs."
     },
-    {
-      question: "What's the payment like?",
-      answer: "We offer flexible payment options including one-time setup fees and monthly subscription plans. The exact pricing depends on your specific requirements and the complexity of your voice agent solution."
-    },
-    {
-      question: "Do you offer on-going support?",
-      answer: "Yes, we provide comprehensive ongoing support for all our voice agent solutions. This includes technical support, performance monitoring, updates, and optimization to ensure your voice agent continues to deliver optimal results."
-    },
-    {
-      question: "Are there refunds?",
-      answer: "We offer a satisfaction guarantee. If you're not satisfied with your voice agent within the first 14 days after deployment, we'll work with you to address any issues or provide a refund according to our refund policy terms."
-    }
+    
   ];
 
   const toggleFAQ = (index: number) => {
@@ -84,7 +78,7 @@ const FAQSection = () => {
   };
 
   return (
-    <section id="faq" className="py-24 bg-gradient-to-b from-background to-gray-50">
+    <section id="faqs" className="py-24 bg-gradient-to-b from-background to-gray-50">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
           <h2 className="text-3xl md:text-5xl font-bold mb-4">

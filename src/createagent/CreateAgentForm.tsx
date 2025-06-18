@@ -1,15 +1,16 @@
-
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Bot, Building2, Globe, Mail, Loader2 } from 'lucide-react';
+import { Bot, Building2, Globe, Mail, Loader2, ArrowLeft } from 'lucide-react';
 import { createAgent } from './services/agentCreationService';
 
 interface CreateAgentFormProps {
   onSuccess?: (agentId: string, agentData: FormData) => void;
   onCancel?: () => void;
+  showBackButton?: boolean;
 }
 
 interface FormData {
@@ -19,7 +20,7 @@ interface FormData {
   agentName: string;
 }
 
-const CreateAgentForm = ({ onSuccess, onCancel }: CreateAgentFormProps) => {
+const CreateAgentForm = ({ onSuccess, onCancel, showBackButton = false }: CreateAgentFormProps) => {
   const [formData, setFormData] = useState<FormData>({
     email: '',
     companyName: '',
@@ -29,6 +30,11 @@ const CreateAgentForm = ({ onSuccess, onCancel }: CreateAgentFormProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [loadingStep, setLoadingStep] = useState<string>('');
   const { toast } = useToast();
+  const navigate = useNavigate();
+
+  const handleGoBack = () => {
+    navigate(-1);
+  };
 
   const updateFormData = (field: keyof FormData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -71,12 +77,20 @@ const CreateAgentForm = ({ onSuccess, onCancel }: CreateAgentFormProps) => {
       return false;
     }
 
-    // Basic URL validation
+    // Improved URL validation to handle special cases
     try {
-      const url = formData.websiteUrl.startsWith('http') 
-        ? formData.websiteUrl 
-        : `https://${formData.websiteUrl}`;
-      new URL(url);
+      // Remove any leading @ if present
+      let urlToValidate = formData.websiteUrl.trim();
+      if (urlToValidate.startsWith('@')) {
+        urlToValidate = urlToValidate.substring(1);
+      }
+      
+      // Add protocol if missing
+      if (!urlToValidate.startsWith('http://') && !urlToValidate.startsWith('https://')) {
+        urlToValidate = `https://${urlToValidate}`;
+      }
+      
+      new URL(urlToValidate);
     } catch {
       toast({
         title: "Invalid Website URL",
@@ -100,10 +114,18 @@ const CreateAgentForm = ({ onSuccess, onCancel }: CreateAgentFormProps) => {
     setLoadingStep('Scraping website content...');
 
     try {
-      // Ensure website URL has proper protocol
-      const websiteUrl = formData.websiteUrl.startsWith('http') 
-        ? formData.websiteUrl 
-        : `https://${formData.websiteUrl}`;
+      // Improved URL processing
+      let websiteUrl = formData.websiteUrl.trim();
+      
+      // Remove any leading @ if present
+      if (websiteUrl.startsWith('@')) {
+        websiteUrl = websiteUrl.substring(1);
+      }
+      
+      // Add protocol if missing
+      if (!websiteUrl.startsWith('http://') && !websiteUrl.startsWith('https://')) {
+        websiteUrl = `https://${websiteUrl}`;
+      }
 
       const agentData = {
         ...formData,
@@ -115,7 +137,7 @@ const CreateAgentForm = ({ onSuccess, onCancel }: CreateAgentFormProps) => {
       // Small delay to show the step change
       await new Promise(resolve => setTimeout(resolve, 500));
       
-      setLoadingStep('Creating AI agent...');
+      setLoadingStep('Building AI agent...');
       const agentId = await createAgent(agentData);
 
       // Reset form
@@ -131,8 +153,23 @@ const CreateAgentForm = ({ onSuccess, onCancel }: CreateAgentFormProps) => {
         description: "Your AI agent has been created with website knowledge.",
       });
 
-      // Call success callback
-      onSuccess?.(agentId, agentData);
+      // Call success callback if provided
+      if (onSuccess) {
+        onSuccess(agentId, agentData);
+      } else {
+        // Navigate to the agent page if no callback provided
+        navigate(`/agent/${agentId}`, { 
+          state: { 
+            agent: {
+              agentId,
+              agentName: agentData.agentName,
+              companyName: agentData.companyName,
+              websiteUrl: agentData.websiteUrl,
+              email: agentData.email
+            }
+          }
+        });
+      }
 
     } catch (error) {
       console.error('Error creating agent:', error);
@@ -149,24 +186,38 @@ const CreateAgentForm = ({ onSuccess, onCancel }: CreateAgentFormProps) => {
 
   return (
     <div className="max-w-xl mx-auto bg-white rounded-lg shadow-lg p-6 relative overflow-visible">
+      {showBackButton && (
+        <div className="absolute top-4 left-4">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={handleGoBack}
+            className="flex items-center gap-2 p-0 hover:bg-transparent"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span className="text-sm">Back</span>
+          </Button>
+        </div>
+      )}
+
       {/* Loading Overlay */}
       {isLoading && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex flex-col items-center pt-20 z-50">
-          <div className="bg-white rounded-lg p-6 mb-6 flex flex-col items-center justify-center shadow-2xl border-2 border-gray-100 max-w-md mx-4">
-            <div className="mb-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex flex-col items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-8 shadow-2xl border border-gray-100 max-w-md mx-4 flex flex-col items-center">
+            <div className="mb-6">
               <img 
-                src="/spark-unscreen.gif" 
-                alt="Creating" 
-                className="w-32 h-32" 
+                src="/DYOTA_logo-removebg-preview.png" 
+                alt="Building Agent" 
+                className="w-36 h-36 animate-pulse" 
               />
             </div>
             <div className="text-center">
-              <div className="flex items-center justify-center mb-2">
-                <Loader2 className="w-5 h-5 animate-spin mr-2" />
-                <span className="text-lg font-semibold">Creating Your Agent</span>
+              <div className="flex items-center justify-center mb-4">
+                <Loader2 className="w-5 h-5 animate-spin mr-3" />
+                <span className="text-xl font-semibold">Building Your Agent</span>
               </div>
               {loadingStep && (
-                <p className="text-gray-600 text-sm">{loadingStep}</p>
+                <p className="text-gray-600">{loadingStep}</p>
               )}
             </div>
           </div>          
@@ -180,7 +231,7 @@ const CreateAgentForm = ({ onSuccess, onCancel }: CreateAgentFormProps) => {
         />
         <h2 className="text-2xl font-bold text-gray-800">Voice Bolt</h2>
         <p className="text-gray-600">Fill in the details to create your custom voice agent</p>
-        <p className="text-sm text-blue-600 mt-1">Website content will be automatically extracted and added to your agent's knowledge base</p>
+        
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4 overflow-visible">
@@ -225,16 +276,12 @@ const CreateAgentForm = ({ onSuccess, onCancel }: CreateAgentFormProps) => {
           </Label>
           <Input
             id="websiteUrl"
-            type="url"
             value={formData.websiteUrl}
             onChange={(e) => updateFormData('websiteUrl', e.target.value)}
-            placeholder="www.yourcompany.com"
+            placeholder="www.yourcompany.com or @domain.com"
             required
             className="mt-1"
           />
-          <p className="text-xs text-gray-500 mt-1">
-            Content from this website will be automatically extracted and added to your agent's knowledge base
-          </p>
         </div>
 
         {/* Action Buttons */}
@@ -253,7 +300,7 @@ const CreateAgentForm = ({ onSuccess, onCancel }: CreateAgentFormProps) => {
           <Button
             type="submit"
             disabled={isLoading}
-            className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white w-full"
+            className="flex-1 bg-black hover:bg-gray-800 text-white w-full"
           >
             Create Agent
           </Button>
