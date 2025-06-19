@@ -106,9 +106,6 @@ Sarah: Here's a problem we solve. (Get the problem and solution from Company Inf
 
 Sarah: Let me know how can we solve your problem ?
 
-Sarah:  Are people leaving your website without buying anything? Our Voice AI guides them towards optimal purchasing decisions!  (Negative but Positive Framework)
-
-... 
 
 (Always ask question about their problem and related to company Information and solve it.)
 
