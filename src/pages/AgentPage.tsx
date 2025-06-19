@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useLocation, Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { 
   Bot, 
@@ -12,14 +13,19 @@ import {
   ExternalLink,
   BookOpen,
   AlertCircle,
-  CheckCircle
+  CheckCircle,
+  Cpu
 } from 'lucide-react';
 import { 
   getAgentDetails, 
   associateKnowledgeBaseWithAgent,
   createWebsiteKnowledgeBase,
-  updateAgentVoice
+  updateAgentVoice,
+  updateAgentLLM,
+  getAvailableLLMModels,
+  getSuccessfulModelFormat
 } from '../createagent/services/agentCreationService';
+import { getElevenLabsApiKey } from '../services/elevenlabs';
 import WebsiteIframe from '@/components/ui/WebsiteIframe';
 
 interface AgentDetails {
@@ -104,6 +110,7 @@ const AgentPage = () => {
   const [hasKnowledgeBase, setHasKnowledgeBase] = useState<boolean | null>(null);
   const [loadingAssociation, setLoadingAssociation] = useState(false);
   const [loadingVoiceUpdate, setLoadingVoiceUpdate] = useState(false);
+  const [loadingLLM, setLoadingLLM] = useState(false);
 
   // Helper to check if agent has knowledge base and get details
   const checkKnowledgeBase = (details: AgentDetails): boolean => {
@@ -465,6 +472,103 @@ const AgentPage = () => {
     }
   };
 
+  // Handle manual updating LLM to Gemini 2.5 Flash
+  const handleUpdateLLM = async () => {
+    if (!agentId) return;
+
+    setLoadingLLM(true);
+    try {
+      toast({
+        title: "Updating LLM",
+        description: "Updating agent LLM to Gemini 2.5 Flash...",
+      });
+      
+      // Update using the exported function
+      await updateAgentLLM(agentId);
+      
+      // Refresh agent details to confirm the update
+      const updatedDetails = await getAgentDetails(agentId);
+      setAgentDetails(updatedDetails);
+      
+      // Log the current configuration to verify model name
+      console.log('Agent details after LLM update:', JSON.stringify(updatedDetails, null, 2));
+      console.log('Current LLM configuration:', 
+        updatedDetails?.conversation_config?.llm || 
+        'LLM config not found in response'
+      );
+      
+      toast({
+        title: "LLM Updated!",
+        description: "Agent LLM has been updated to Gemini 2.5 Flash. Refresh the page to see the changes.",
+      });
+    } catch (error) {
+      console.error('Error updating agent LLM:', error);
+      toast({
+        title: "LLM Update Failed",
+        description: "Failed to update agent LLM. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoadingLLM(false);
+    }
+  };
+
+  // Debug function to check available LLM models
+  const handleCheckAvailableModels = async () => {
+    try {
+      toast({
+        title: "Checking Available Models",
+        description: "Fetching available LLM models from ElevenLabs API...",
+      });
+      
+      const models = await getAvailableLLMModels();
+      console.log('Available LLM models:', models);
+      
+      toast({
+        title: "Models Check Complete",
+        description: "Check console for available LLM models",
+      });
+    } catch (error) {
+      console.error('Error checking available LLM models:', error);
+      toast({
+        title: "Models Check Failed",
+        description: "Failed to fetch available LLM models. Check console for details.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Debug function to show the current model format
+  const handleShowModelFormat = () => {
+    const format = getSuccessfulModelFormat();
+    console.log('Current successful model format:', format);
+    toast({
+      title: "Current Model Format",
+      description: `Current model format: ${format}`,
+    });
+  };
+
+  // Helper function to get LLM model name safely
+  const getLLMModelName = (agentDetails: any) => {
+    if (!agentDetails || !agentDetails.conversation_config) return null;
+    
+    // The LLM configuration might be at different locations in the response
+    // Try all possible locations
+    const config = agentDetails.conversation_config;
+    
+    // Check direct llm property
+    if (config.llm && config.llm.model_name) {
+      return config.llm.model_name;
+    }
+    
+    // Check under agent.llm
+    if (config.agent && config.agent.llm && config.agent.llm.model_name) {
+      return config.agent.llm.model_name;
+    }
+    
+    return null;
+  };
+
   if (isLoadingAgent) {
     return (
       <div className="container mx-auto max-w-4xl py-8">
@@ -660,6 +764,35 @@ const AgentPage = () => {
               </div>
             )}
             
+            {/* LLM Status */}
+            {agentDetails && (
+              <div className="mb-6 flex flex-col items-center">
+                <div className="flex items-center text-purple-600 mb-2">
+                  <Cpu className="w-5 h-5 mr-2" />
+                  <span>Update agent LLM to Gemini 2.5 Flash</span>
+                </div>
+                
+                {!loadingLLM && (
+                  <Button 
+                    variant="outline"
+                    size="sm"
+                    onClick={handleUpdateLLM}
+                    className="mt-2"
+                  >
+                    <Cpu className="w-4 h-4 mr-2" />
+                    Set LLM to Gemini 2.5 Flash
+                  </Button>
+                )}
+                
+                {loadingLLM && (
+                  <div className="flex items-center mt-2">
+                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                    <span className="text-sm">Updating LLM...</span>
+                  </div>
+                )}
+              </div>
+            )}
+            
             {/* ElevenLabs Widget - centered when no website */}
             {isWidgetLoaded && localAgent ? (
               micPermissionGranted ? (
@@ -700,15 +833,43 @@ const AgentPage = () => {
                 <span>Loading voice chat widget...</span>
               </div>
             )}
+            
+            {/* Debug buttons for developers */}
+            <div className="flex flex-col gap-2 mt-2">
+              <Button 
+                variant="secondary"
+                size="sm"
+                onClick={handleCheckAvailableModels}
+                className="text-xs"
+              >
+                Check Available Models
+              </Button>
+              <Button 
+                variant="secondary"
+                size="sm"
+                onClick={handleShowModelFormat}
+                className="text-xs"
+              >
+                Show Current Model Format
+              </Button>
+            </div>
+            
+            {/* Display current model if available */}
+            {agentDetails && (
+              <div className="mt-4">
+                <h3 className="font-semibold flex items-center gap-2">
+                  <Cpu className="h-4 w-4" /> Current LLM Model
+                </h3>
+                <p className="text-sm mt-1">
+                  {getLLMModelName(agentDetails) || "Not specified"}
+                </p>
+              </div>
+            )}
           </div>
         </div>
       )}
     </div>
   );
 };
-
-// Import Badge here since it wasn't at the top
-// We need this when we reference Badge in the JSX
-import { Badge } from '@/components/ui/badge';
 
 export default AgentPage;

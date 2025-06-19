@@ -1,5 +1,5 @@
-import { getElevenLabsApiKey } from '@/services/elevenlabs';
-import { firecrawlService } from '@/services/firecrawlService';
+import { getElevenLabsApiKey } from '../../services/elevenlabs';
+import { firecrawlService } from '../../services/firecrawlService';
 import { generateSimpleAgentPrompt, generateSimpleFirstMessage, generateSimpleCompanyInfo } from './standardPromptGenerator';
 import { DEFAULT_AGENT_ID } from '@/constants/agentConstants';
 
@@ -63,6 +63,7 @@ interface ElevenLabsAgentRequest {
           embedding_model?: string;
           max_documents_length?: number;
         };
+        llm?: string;
       };
       first_message: string;
       language: string;
@@ -88,7 +89,65 @@ interface ElevenLabsAgentResponse {
   updated_at: string;
 }
 
+// Store the successful model name format that works with the ElevenLabs API
+let SUCCESSFUL_MODEL_FORMAT = "gemini-2.5-flash";
 
+// Export function to update the successful model format when we discover which one works
+export const setSuccessfulModelFormat = (format: string) => {
+  console.log(`Setting successful model format to: ${format}`);
+  SUCCESSFUL_MODEL_FORMAT = format;
+};
+
+// Export function to get the current successful model format
+export const getSuccessfulModelFormat = () => {
+  return SUCCESSFUL_MODEL_FORMAT;
+};
+
+// Get available LLM models from ElevenLabs API
+export const getAvailableLLMModels = async (): Promise<any> => {
+  try {
+    console.log('Fetching available LLM models from ElevenLabs API...');
+    
+    const apiKey = await getElevenLabsApiKey();
+    if (!apiKey) {
+      throw new Error('No ElevenLabs API key found.');
+    }
+
+    // Try to fetch available models - this is an estimated endpoint since we don't know
+    // the exact endpoint ElevenLabs uses to list available models
+    const response = await fetch('https://api.elevenlabs.io/v1/convai/llm/models', {
+      method: 'GET',
+      headers: {
+        'xi-api-key': apiKey,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      console.warn(`Models endpoint failed: ${response.status}. Trying another endpoint...`);
+      
+      // Try a different potential endpoint
+      const altResponse = await fetch('https://api.elevenlabs.io/v1/convai/models', {
+        method: 'GET',
+        headers: {
+          'xi-api-key': apiKey,
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!altResponse.ok) {
+        throw new Error(`Failed to fetch available LLM models: ${altResponse.status}`);
+      }
+      
+      return await altResponse.json();
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching available LLM models:', error);
+    throw error;
+  }
+};
 
 // Generate a comprehensive agent prompt based on company data and extracted information (for FIRE-1)
 const generateAgentPrompt = (data: AgentCreationData, companyInfo: CompanyInformation): string => {
@@ -507,7 +566,9 @@ export const createAgent = async (data: AgentCreationData): Promise<string> => {
                 embedding_model: "e5_mistral_7b_instruct",
                 max_documents_length: 15000 // Increased limit for multiple knowledge bases
               }
-            })
+            }),
+            // Set LLM to Gemini 2.5 Flash - llm field is inside prompt object
+            llm: "gemini-2.5-flash"
           },
           first_message: firstMessage,
           language: 'en'
@@ -1209,12 +1270,17 @@ export const updateAgentVoice = async (agentId: string): Promise<void> => {
     // Get current agent configuration
     const currentAgent = await getAgentDetails(agentId);
     
-    // Update with Sarah's voice configuration
+    // Update with Sarah's voice configuration and Gemini 2.5 Flash model
     const voiceUpdate = {
       conversation_config: {
         ...currentAgent.conversation_config,
         agent: {
-          ...currentAgent.conversation_config?.agent
+          ...currentAgent.conversation_config?.agent,
+          prompt: {
+            ...currentAgent.conversation_config?.agent?.prompt,
+            // Set LLM to Gemini 2.5 Flash in the prompt object (correct location)
+            llm: "gemini-2.5-flash"
+          }
         },
         tts: {
           voice_id: 'EXAVITQu4vr4xnSDxMaL', // Sarah's voice ID
@@ -1241,10 +1307,63 @@ export const updateAgentVoice = async (agentId: string): Promise<void> => {
       throw new Error(`Failed to update agent voice: ${response.status}`);
     }
 
-    console.log('✅ Agent voice updated to Sarah successfully!');
+    console.log('✅ Agent voice updated to Sarah and LLM set to Gemini 2.5 Flash successfully!');
     return await response.json();
   } catch (error) {
     console.error('Error updating agent voice:', error);
+    throw error;
+  }
+};
+
+// Update an agent's LLM model to the recommended Gemini 2.5 Flash
+export const updateAgentLLM = async (agentId: string): Promise<void> => {
+  try {
+    console.log(`Updating agent ${agentId} LLM to Gemini 2.5 Flash...`);
+    
+    const apiKey = await getElevenLabsApiKey();
+    if (!apiKey) {
+      throw new Error('No ElevenLabs API key found.');
+    }
+
+    // Get current agent configuration
+    const currentAgent = await getAgentDetails(agentId);
+    
+    // Set the model name based on documentation and UI screenshot
+    const modelName = "gemini-2.5-flash"; 
+    
+    // Update the agent's prompt.llm field (correct location according to docs)
+    const llmUpdate = {
+      conversation_config: {
+        ...currentAgent.conversation_config,
+        agent: {
+          ...currentAgent.conversation_config?.agent,
+          prompt: {
+            ...currentAgent.conversation_config?.agent?.prompt,
+            llm: modelName
+          }
+        }
+      }
+    };
+
+    const response = await fetch(`https://api.elevenlabs.io/v1/convai/agents/${agentId}`, {
+      method: 'PATCH',
+      headers: {
+        'xi-api-key': apiKey,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(llmUpdate),
+    });
+
+    if (response.ok) {
+      console.log('✅ Agent LLM updated to Gemini 2.5 Flash successfully!');
+      return await response.json();
+    } else {
+      const errorText = await response.text();
+      console.error(`Failed to update LLM: ${response.status} - ${errorText}`);
+      throw new Error(`Failed to update agent LLM: ${response.status}`);
+    }
+  } catch (error) {
+    console.error('Error updating agent LLM:', error);
     throw error;
   }
 };

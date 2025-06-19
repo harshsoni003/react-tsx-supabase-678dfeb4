@@ -15,5 +15,11 @@ export {
   associateKnowledgeBaseWithAgent,
   associateExistingKnowledgeBase,
   removeKnowledgeBaseFromAgent,
-  createWebsiteKnowledgeBase
+  createWebsiteKnowledgeBase,
+  updateAgentVoice,
+  updateAgentLLM,
+  
+  getAvailableLLMModels,
+  getSuccessfulModelFormat,
+  setSuccessfulModelFormat
 } from './services/agentCreationService'; 
