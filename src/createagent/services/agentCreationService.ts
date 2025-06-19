@@ -1,6 +1,7 @@
 import { getElevenLabsApiKey } from '@/services/elevenlabs';
 import { firecrawlService } from '@/services/firecrawlService';
 import { generateSimpleAgentPrompt, generateSimpleFirstMessage, generateSimpleCompanyInfo } from './standardPromptGenerator';
+import { DEFAULT_AGENT_ID } from '@/constants/agentConstants';
 
 // Interface for agent creation data
 export interface AgentCreationData {
@@ -93,7 +94,7 @@ interface ElevenLabsAgentResponse {
 const generateAgentPrompt = (data: AgentCreationData, companyInfo: CompanyInformation): string => {
   return `You are an expert extraction algorithm.
 Only extract relevant information from the text.
-If you don't know anything then just add "Couldn't be Found in Website". Do not make-up them yourself, do not hallucinate.
+If you don't know anything then just add "{use your Agent knowledge base to find the information}". Do not make-up them yourself, do not hallucinate.
 
 Your task is to extract company information in below format:
 

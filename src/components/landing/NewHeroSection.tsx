@@ -113,7 +113,7 @@ export const NewHeroSection = ({ onCreateAgent, onTalkWithBot, isLoggedIn = fals
                                                 <div className="absolute size-6 rounded-full animate-ping-slow animation-delay-300" style={{ backgroundColor: 'rgba(227, 168, 56, 0.3)' }}></div>
                                                 <div className="absolute size-8 rounded-full animate-ping-slow animation-delay-600" style={{ backgroundColor: 'rgba(227, 168, 56, 0.1)' }}></div>
                                             </div>
-                                            <span className="text-foreground text-sm font-medium">Only 7 spots left this June</span>
+                                            <span className="text-foreground text-sm font-medium">Only 9 spots left this June</span>
                                         </div>
                                         <span className="dark:border-background block h-4 w-0.5 border-l bg-white dark:bg-zinc-700"></span>
 

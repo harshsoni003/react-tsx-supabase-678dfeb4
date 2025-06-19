@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { DEFAULT_AGENT_ID } from '@/constants/agentConstants';
 
 interface TalkWithBotButtonProps {
   onClick: () => void;
@@ -27,7 +28,7 @@ const TalkWithBotButton = ({ onClick }: TalkWithBotButtonProps) => {
 
   return (
     <div className="fixed bottom-6 right-6 z-50">
-      <elevenlabs-convai agent-id="agent_01jwk1cxa5e6e9y098f7es8waf"></elevenlabs-convai>
+      <elevenlabs-convai agent-id={DEFAULT_AGENT_ID}></elevenlabs-convai>
     </div>
   );
 };

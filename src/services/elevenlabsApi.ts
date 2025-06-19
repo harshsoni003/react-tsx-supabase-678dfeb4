@@ -1,12 +1,13 @@
 // ElevenLabs API Service for Dashboard Statistics
 import { useState, useEffect } from 'react';
+import { DEFAULT_AGENT_ID } from '@/constants/agentConstants';
 
 // ElevenLabs API key from environment variables
 const ELEVENLABS_API_KEY = import.meta.env.VITE_ELEVENLABS_API_KEY;
 const ELEVENLABS_API_URL = 'https://api.elevenlabs.io/v1';
 
 // Specific agent ID from ElevenLabs URL
-const AGENT_ID = 'agent_01jwk1cxa5e6e9y098f7es8waf';
+const AGENT_ID = DEFAULT_AGENT_ID;
 
 // Main ElevenLabs platform URLs
 const ELEVENLABS_PLATFORM_URL = 'https://elevenlabs.io/app';
@@ -236,7 +237,7 @@ export const useConversationalAIData = () => {
         setData({
           agents: [
             {
-              id: 'agent_01jwk1cxa5e6e9y098f7es8waf',
+              id: DEFAULT_AGENT_ID,
               name: 'Customer Support Agent',
               description: 'Helps customers with product inquiries and troubleshooting.',
               status: 'active',
@@ -245,7 +246,7 @@ export const useConversationalAIData = () => {
               public: true
             },
             {
-              id: 'agent_02abc3dex7f8g9h0ijk1lmno2p',
+              id: DEFAULT_AGENT_ID,
               name: 'Sales Assistant',
               description: 'Provides information about products and services.',
               status: 'active',

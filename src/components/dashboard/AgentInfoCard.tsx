@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { fetchAgentInfo } from '@/services/elevenlabsApi';
+import { DEFAULT_AGENT_ID } from '@/constants/agentConstants';
 
 const AgentInfoCard = () => {
   const [agentInfo, setAgentInfo] = useState<any>(null);
@@ -21,7 +22,7 @@ const AgentInfoCard = () => {
         setError('Failed to load agent information');
         // Mock data as fallback
         setAgentInfo({
-          id: 'agent_01jwk1cxa5e6e9y098f7es8waf',
+          id: DEFAULT_AGENT_ID,
           name: 'ElevenLabs Assistant',
           description: 'An AI voice agent powered by ElevenLabs.',
           created_at: new Date().toISOString(),

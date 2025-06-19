@@ -2,13 +2,13 @@
 import { useConversation } from '@elevenlabs/react';
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { DEFAULT_AGENT_ID } from '@/constants/agentConstants';
 
 // ElevenLabs API key from environment variables
 const ELEVENLABS_API_KEY = import.meta.env.VITE_ELEVENLABS_API_KEY;
 
 // Agent ID for your ElevenLabs voice agent
-// Using the specific agent ID from ElevenLabs (from https://elevenlabs.io/app/talk-to?agent_id=agent_01jwk1cxa5e6e9y098f7es8waf)
-const AGENT_ID = 'agent_01jwk1cxa5e6e9y098f7es8waf';
+const AGENT_ID = DEFAULT_AGENT_ID;
 
 // Interface for conversational AI conversation data
 export interface ConvAIConversation {
@@ -271,7 +271,7 @@ export const useVoiceChat = () => {
 export const getElevenLabsApiKey = async (): Promise<string | null> => {
   try {
     // Hardcoded API key as fallback to ensure it always works
-    const HARDCODED_API_KEY = "sk_afff30844e8ff2452ed550c7bc0ab7084db0a78909d4a1a1";
+    const HARDCODED_API_KEY = "sk_8ddd68abb1025faae91bb35ddacff12dbbba6cc8230f5994";
     
     // First check if we have an API key in the environment variables
     if (ELEVENLABS_API_KEY) {
@@ -301,7 +301,7 @@ export const getElevenLabsApiKey = async (): Promise<string | null> => {
     console.error('Error fetching ElevenLabs API key:', error);
     
     // Last resort hardcoded fallback if any error occurred
-    const HARDCODED_API_KEY = "sk_afff30844e8ff2452ed550c7bc0ab7084db0a78909d4a1a1";
+    const HARDCODED_API_KEY = "sk_8ddd68abb1025faae91bb35ddacff12dbbba6cc8230f5994";
     console.log('Using hardcoded API key due to error');
     return HARDCODED_API_KEY;
   }

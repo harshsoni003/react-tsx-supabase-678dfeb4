@@ -1,7 +1,7 @@
 import FireCrawlApp from '@mendable/firecrawl-js';
 import { getElevenLabsApiKey } from '@/services/elevenlabs';
 
-const FIRECRAWL_API_KEY = 'fc-25e30a7d87a44704ba5ac291a3bf868d';
+const FIRECRAWL_API_KEY = 'fc-fd1793491436412a8240a776b4d78243';
 
 type CrawlFormat = "markdown" | "html" | "rawHtml" | "content" | "links" | "screenshot" | "screenshot@fullPage" | "extract" | "json" | "changeTracking";
 
