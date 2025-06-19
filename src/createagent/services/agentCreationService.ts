@@ -1,5 +1,6 @@
 import { getElevenLabsApiKey } from '@/services/elevenlabs';
 import { firecrawlService } from '@/services/firecrawlService';
+import { generateSimpleAgentPrompt, generateSimpleFirstMessage, generateSimpleCompanyInfo } from './standardPromptGenerator';
 
 // Interface for agent creation data
 export interface AgentCreationData {
@@ -7,6 +8,40 @@ export interface AgentCreationData {
   companyName: string;
   websiteUrl: string;
   agentName: string;
+  useFire1Extraction?: boolean;
+}
+
+// Interface for extracted company information from FIRE-1 agent
+export interface CompanyInformation {
+  companyName: string;
+  companyIndustryType?: string;
+  companySummary?: string;
+  companyServices?: Array<{
+    service: string;
+    description: string;
+  }>;
+  companyPricings?: Array<{
+    plan: string;
+    price: string;
+    features: string;
+  }>;
+  companyEmail?: string;
+  companyFAQ?: Array<{
+    question: string;
+    answer: string;
+  }>;
+  companySocials?: {
+    youtube?: string;
+    twitter?: string;
+    linkedin?: string;
+    instagram?: string;
+    other_socials?: string;
+  };
+  valueProposition?: string;
+  problemSolving?: string;
+  companySolution?: string;
+  companyCTA?: string;
+  additionalInfo?: string;
 }
 
 // Interface for ElevenLabs agent creation request
@@ -52,48 +87,89 @@ interface ElevenLabsAgentResponse {
   updated_at: string;
 }
 
-// Generate a comprehensive agent prompt based on company data
-const generateAgentPrompt = (data: AgentCreationData): string => {
-  return `You are ${data.agentName}, a professional AI assistant representing ${data.companyName}.
 
-COMPANY INFORMATION:
-- Company: ${data.companyName}
-- Website: ${data.websiteUrl}
-- Contact Email: ${data.email}
 
-YOUR ROLE:
-You are a helpful, professional, and knowledgeable customer service representative for ${data.companyName}. Your primary goals are to:
+// Generate a comprehensive agent prompt based on company data and extracted information (for FIRE-1)
+const generateAgentPrompt = (data: AgentCreationData, companyInfo: CompanyInformation): string => {
+  return `You are an expert extraction algorithm.
+Only extract relevant information from the text.
+If you don't know anything then just add "Couldn't be Found in Website". Do not make-up them yourself, do not hallucinate.
 
-1. Assist customers with inquiries about our products and services
-2. Provide accurate information about our company
-3. Help resolve customer issues and concerns
-4. Guide customers to appropriate resources on our website (${data.websiteUrl})
-5. Collect contact information when appropriate
-6. Maintain a friendly and professional tone at all times
+Your task is to extract company information in below format:
 
-GUIDELINES:
-- Always be polite, helpful, and professional
-- If you don't know specific information about the company's products or services, direct customers to visit ${data.websiteUrl} or contact ${data.email}
-- Keep responses concise but informative
-- Ask clarifying questions when needed
-- Always try to be helpful and solution-oriented
-- If a customer needs technical support or detailed information you cannot provide, offer to have someone contact them at ${data.email}
+FORMAT:
+[Company Information]
+#Company Name: ${companyInfo.companyName}
+#Company Industry Type: ${companyInfo.companyIndustryType || "Couldn't be Found in Website"}
+#Company Summary: ${companyInfo.companySummary || "Couldn't be Found in Website"}
+#Company Services Provided: 
+${companyInfo.companyServices && companyInfo.companyServices.length > 0 
+  ? companyInfo.companyServices.map((service, index) => `${index + 1}. ${service.service}: ${service.description}`).join('\n')
+  : "Couldn't be Found in Website"}
+#Company Pricings:
+${companyInfo.companyPricings && companyInfo.companyPricings.length > 0
+  ? "Pricings and Package information:\n" + companyInfo.companyPricings.map((pricing, index) => `${index + 1}. ${pricing.plan}: ${pricing.price}`).join('\n')
+  : "Couldn't be Found in Website"}
+#Company Email and contact details: ${companyInfo.companyEmail || "Couldn't be Found in Website"}
+#Company FAQ:
+${companyInfo.companyFAQ && companyInfo.companyFAQ.length > 0
+  ? "FAQ questions & their answers:\n" + companyInfo.companyFAQ.map((faq, index) => `${index + 1}.${faq.question}\n  ${index + 1}.${faq.answer}`).join('\n')
+  : "Couldn't be Found in Website"}
+#All Company Socials accounts username or links(if given):
+${companyInfo.companySocials 
+  ? ` -YT: ${companyInfo.companySocials.youtube || "Couldn't be Found in Website"}
+ -X(twitter): ${companyInfo.companySocials.twitter || "Couldn't be Found in Website"}
+ -LinkedIn: ${companyInfo.companySocials.linkedin || "Couldn't be Found in Website"}
+ -Instagram: ${companyInfo.companySocials.instagram || "Couldn't be Found in Website"}
+ -Other socials: ${companyInfo.companySocials.other_socials || "Couldn't be Found in Website"}`
+  : "Couldn't be Found in Website"}
+# Other IMP Company Information: ${companyInfo.additionalInfo || "Couldn't be Found in Website"}
+#Value proposition: ${companyInfo.valueProposition || "I help you build voice AI for your business."}
+#Problem Company is solving: ${companyInfo.problemSolving || "Couldn't be Found in Website"}
+#Company Solution to the problem: ${companyInfo.companySolution || "Couldn't be Found in Website"}
+#Company CTA: ${companyInfo.companyCTA || "Couldn't be Found in Website"}`;
+};
 
-GREETING:
-Start conversations by introducing yourself: "Hello! I'm ${data.agentName}, your AI assistant from ${data.companyName}. How can I help you today?"
+// Extract company information from FIRE-1 agent data
+const extractCompanyInformationFromFIRE1 = (fire1Data: any): CompanyInformation => {
+  console.log('📊 Processing FIRE-1 extraction data...');
+  
+  // Handle both array and direct object responses
+  const dataArray = Array.isArray(fire1Data) ? fire1Data : [fire1Data];
+  const extractedData = dataArray[0] || {};
+  
+  const companyInfo: CompanyInformation = {
+    companyName: extractedData['Company Name'] || 'Unknown Company',
+    companyIndustryType: extractedData['Company Industry Type'],
+    companySummary: extractedData['Company Summary'],
+    companyServices: extractedData['Company Services Provided'],
+    companyPricings: extractedData['Company Pricings'],
+    companyEmail: extractedData['Company Email and contact details'],
+    companyFAQ: extractedData['Company FAQ'],
+    companySocials: extractedData['Company Socials accounts'],
+    valueProposition: extractedData['Value proposition'],
+    problemSolving: extractedData['Problem Company is solving'],
+    companySolution: extractedData['Company Solution to the problem'],
+    companyCTA: extractedData['Company CTA'],
+    additionalInfo: extractedData['Other IMP Company Information']
+  };
 
-Remember: You represent ${data.companyName} and should always maintain the company's professional standards and values.`;
+  console.log('✅ Company information extracted:', companyInfo);
+  return companyInfo;
 };
 
 // Generate a default first message for the agent
-const generateFirstMessage = (data: AgentCreationData): string => {
-  return `Hello! I'm ${data.agentName}, your AI assistant from ${data.companyName}. How can I help you today?`;
+const generateFirstMessage = (data: AgentCreationData, companyInfo: CompanyInformation): string => {
+  const valueProposition = companyInfo.valueProposition || "I help you build voice AI for your business.";
+  return `Hi! I'm Sarah from ${data.companyName}. ${valueProposition}`;
 };
 
+
+
 // Create knowledge base document from scraped website content
-const createKnowledgeBaseFromContent = async (content: string, companyName: string, websiteUrl: string): Promise<string> => {
+const createKnowledgeBaseFromContent = async (content: string, companyName: string, websiteUrl: string, contentType: string = 'Website Content'): Promise<string> => {
   try {
-    console.log('Creating knowledge base document from scraped content...');
+    console.log(`Creating knowledge base document from ${contentType.toLowerCase()}...`);
     
     // Get the API key
     let apiKey = await getElevenLabsApiKey();
@@ -116,7 +192,7 @@ const createKnowledgeBaseFromContent = async (content: string, companyName: stri
       },
       body: JSON.stringify({
         text: content,
-        name: `${companyName} Website Content`
+        name: `${companyName} ${contentType} - ${new Date().toLocaleDateString()}`
       }),
     });
 
@@ -173,7 +249,7 @@ const createKnowledgeBaseFromContent = async (content: string, companyName: stri
   }
 };
 
-// Create a new agent in ElevenLabs with scraped website content
+// Create a new agent in ElevenLabs with FIRE-1 extracted company information
 export const createAgent = async (data: AgentCreationData): Promise<string> => {
   try {
     console.log('Creating agent with data:', data);
@@ -191,89 +267,141 @@ export const createAgent = async (data: AgentCreationData): Promise<string> => {
       throw new Error('No ElevenLabs API key found. Please add your API key in Settings or .env file.');
     }
 
-    // Generate agent prompt and configuration
-    const agentPrompt = generateAgentPrompt(data);
-    const firstMessage = generateFirstMessage(data);
-
-    // First, scrape the website content using FireCrawl
-    console.log('Scraping website content with FireCrawl...');
-    const scrapeResult = await firecrawlService.scrapeWebsite(data.websiteUrl);
+    // Enhanced knowledge base creation: Both scraped content AND URL-based knowledge
+    let scrapedContentKnowledgeBaseId: string | null = null;
+    let urlBasedKnowledgeBaseId: string | null = null;
+    let companyInfo: CompanyInformation = { companyName: data.companyName };
     
-    let knowledgeBaseId: string | null = null;
+    console.log('🚀 Starting dual knowledge base creation (Scraped Content + URL-based)...');
     
-    if (scrapeResult.success && scrapeResult.content) {
+    // 1. Conditional FIRE-1 Agent extraction for comprehensive scraped data
+    if (data.useFire1Extraction !== false) { // Default to true if not specified
+      console.log('🤖 Step 1: Extracting company information using FIRE-1 agent...');
       try {
-        console.log('Creating knowledge base from scraped content...');
-        knowledgeBaseId = await createKnowledgeBaseFromContent(
-          scrapeResult.content, 
-          data.companyName, 
-          data.websiteUrl
-        );
-        console.log('Knowledge base created with ID:', knowledgeBaseId);
+        const fire1Result = await firecrawlService.extractCompanyInformationWithFIRE1(data.websiteUrl);
         
-        // Wait a bit for KB to be fully initialized
-        await new Promise(resolve => setTimeout(resolve, 2000));
-      } catch (error) {
-        console.warn('Failed to create knowledge base from scraped content:', error);
-        
-        // Fallback to URL-based knowledge base
-        try {
-          console.log('Trying URL-based knowledge base as fallback...');
-          knowledgeBaseId = await createWebsiteKnowledgeBase(
-            data.websiteUrl,
-            data.companyName
-          );
-          console.log('URL-based knowledge base created with ID:', knowledgeBaseId);
+        if (fire1Result.success && fire1Result.data) {
+          // Extract company information from FIRE-1 structured data
+          companyInfo = extractCompanyInformationFromFIRE1(fire1Result.data);
+          console.log('✅ Company information extracted successfully via FIRE-1');
           
-          // Wait a bit for KB to be fully initialized
-          await new Promise(resolve => setTimeout(resolve, 2000));
-        } catch (kbError) {
-          console.error('Failed to create URL-based knowledge base as fallback:', kbError);
+          // Create knowledge base from FIRE-1 formatted content
+          if (fire1Result.content) {
+            console.log('📄 Creating scraped content knowledge base from FIRE-1 extracted content...');
+            scrapedContentKnowledgeBaseId = await createKnowledgeBaseFromContent(
+              fire1Result.content,
+              companyInfo.companyName,
+              data.websiteUrl,
+              'FIRE-1 Extracted Content'
+            );
+            console.log('✅ FIRE-1 scraped content knowledge base created with ID:', scrapedContentKnowledgeBaseId);
+          }
+        } else {
+          console.warn('⚠️ FIRE-1 extraction failed:', fire1Result.error);
         }
+      } catch (fire1Error) {
+        console.error('❌ FIRE-1 extraction error:', fire1Error);
       }
     } else {
-      console.warn('Failed to scrape website content:', scrapeResult.error);
-      
-      // Fallback to URL-based knowledge base
+      console.log('⏭️ Step 1: Skipping FIRE-1 extraction (disabled by user)');
+    }
+
+    // 2. Fallback to standard scraping if FIRE-1 didn't provide scraped content
+    if (!scrapedContentKnowledgeBaseId) {
+      console.log('🔄 Step 2: Fallback to standard website scraping for content...');
       try {
-        console.log('Trying URL-based knowledge base as primary method...');
-        knowledgeBaseId = await createWebsiteKnowledgeBase(
-          data.websiteUrl,
-          data.companyName
-        );
-        console.log('URL-based knowledge base created with ID:', knowledgeBaseId);
-        
-        // Wait a bit for KB to be fully initialized
-        await new Promise(resolve => setTimeout(resolve, 2000));
-      } catch (kbError) {
-        console.error('Failed to create URL-based knowledge base:', kbError);
+        const scrapeResult = await firecrawlService.scrapeWebsite(data.websiteUrl);
+        if (scrapeResult.success && scrapeResult.content) {
+          scrapedContentKnowledgeBaseId = await createKnowledgeBaseFromContent(
+            scrapeResult.content,
+            data.companyName,
+            data.websiteUrl,
+            'Scraped Website Content'
+          );
+          console.log('✅ Fallback scraped content knowledge base created with ID:', scrapedContentKnowledgeBaseId);
+        }
+      } catch (scrapeError) {
+        console.error('❌ Fallback scraping error:', scrapeError);
       }
     }
 
-    // Prepare the agent creation request with proper knowledge base structure
+    // 3. Always create URL-based knowledge base (in addition to scraped content)
+    console.log('🌐 Step 3: Creating URL-based knowledge base...');
+    try {
+      urlBasedKnowledgeBaseId = await createWebsiteKnowledgeBase(
+        data.websiteUrl,
+        data.companyName
+      );
+      console.log('✅ URL-based knowledge base created with ID:', urlBasedKnowledgeBaseId);
+    } catch (urlError) {
+      console.error('❌ URL-based knowledge base creation failed:', urlError);
+    }
+
+    // Log the knowledge base creation results
+    console.log('📊 Knowledge base creation summary:', {
+      scrapedContentKB: scrapedContentKnowledgeBaseId ? '✅ Created' : '❌ Failed',
+      urlBasedKB: urlBasedKnowledgeBaseId ? '✅ Created' : '❌ Failed',
+      totalKnowledgeBases: [scrapedContentKnowledgeBaseId, urlBasedKnowledgeBaseId].filter(Boolean).length
+    });
+
+    // Generate agent prompt based on extraction method used
+    const useFire1 = data.useFire1Extraction !== false;
+    console.log(`🎯 Generating ${useFire1 ? 'comprehensive FIRE-1' : 'simple'} agent prompt...`);
+    
+    const agentPrompt = useFire1 
+      ? generateAgentPrompt(data, companyInfo) 
+      : generateSimpleAgentPrompt(data);
+    const firstMessage = useFire1
+      ? generateFirstMessage(data, companyInfo)
+      : generateSimpleFirstMessage(data);
+      
+    console.log('📝 Agent prompt preview:', agentPrompt.substring(0, 200) + '...');
+
+    // Prepare knowledge base array with both scraped content and URL-based knowledge
+    const knowledgeBaseArray: Array<{
+      type: string;
+      name: string;
+      id: string;
+      usage_mode: string;
+    }> = [];
+
+    // Add scraped content knowledge base if available
+    if (scrapedContentKnowledgeBaseId) {
+      knowledgeBaseArray.push({
+        type: "text",
+        name: `${data.companyName} Scraped Content`,
+        id: scrapedContentKnowledgeBaseId,
+        usage_mode: "auto" // Use auto mode which enables RAG functionality
+      });
+    }
+
+    // Add URL-based knowledge base if available
+    if (urlBasedKnowledgeBaseId) {
+      knowledgeBaseArray.push({
+        type: "url",
+        name: `${data.companyName} Website Knowledge`,
+        id: urlBasedKnowledgeBaseId,
+        usage_mode: "auto" // Use auto mode which enables RAG functionality
+      });
+    }
+
+    // Prepare the agent creation request
     const agentRequest: ElevenLabsAgentRequest = {
       name: data.agentName,
       conversation_config: {
         agent: {
           prompt: {
             prompt: agentPrompt,
-            // Include knowledge base in the prompt configuration if we have one (use auto mode for RAG)
-            ...(knowledgeBaseId && {
-              knowledge_base: [
-                {
-                  type: "url",
-                  name: `${data.companyName} Website Knowledge`,
-                  id: knowledgeBaseId,
-                  usage_mode: "auto" // Use auto mode which enables RAG functionality
-                }
-              ]
+            // Include both knowledge bases if we have any
+            ...(knowledgeBaseArray.length > 0 && {
+              knowledge_base: knowledgeBaseArray
             }),
-            // Always enable RAG when we have a knowledge base
-            ...(knowledgeBaseId && {
+            // Always enable RAG when we have knowledge bases
+            ...(knowledgeBaseArray.length > 0 && {
               rag: {
                 enabled: true,
-                embedding_model: "e5_mistral_7b_instruct", // Default embedding model
-                max_documents_length: 10000 // Maximum document length for RAG
+                embedding_model: "e5_mistral_7b_instruct",
+                max_documents_length: 15000 // Increased limit for multiple knowledge bases
               }
             })
           },
@@ -335,50 +463,6 @@ export const createAgent = async (data: AgentCreationData): Promise<string> => {
     
     console.log('Agent created successfully with ID:', agentId);
     
-    // Verify the knowledge base was included in the agent creation
-    if (knowledgeBaseId) {
-      console.log('Verifying knowledge base association...');
-      try {
-        const agentDetails = await getAgentDetails(agentId);
-        console.log('Created agent details:', JSON.stringify(agentDetails, null, 2));
-        
-        // Check if knowledge base was included in the prompt configuration
-        const hasKnowledgeBase = agentDetails?.conversation_config?.agent?.prompt?.knowledge_base?.some(
-          (kb: any) => kb.id === knowledgeBaseId
-        );
-        
-        if (hasKnowledgeBase) {
-          console.log('✅ SUCCESS! Knowledge base was included during agent creation!');
-        } else {
-          console.log('❌ Knowledge base not found in created agent, attempting association...');
-          
-          // Try association as fallback
-          await associateKnowledgeBaseWithAgent(agentId, knowledgeBaseId);
-          
-          // Final verification
-          const finalCheck = await getAgentDetails(agentId);
-          const finalHasKnowledgeBase = finalCheck?.conversation_config?.agent?.prompt?.knowledge_base?.some(
-            (kb: any) => kb.id === knowledgeBaseId
-          );
-          
-          if (finalHasKnowledgeBase) {
-            console.log('✅ Knowledge base successfully associated after creation!');
-          } else {
-            console.log('⚠️ IMPORTANT: Knowledge base document created but not auto-associated');
-            console.log('📝 Manual association required:');
-            console.log(`   1. Go to: https://elevenlabs.io/app/conversational-ai/agents/${agentId}`);
-            console.log('   2. Click "Add document" in Knowledge base section');
-            console.log('   3. Select your website knowledge document');
-            console.log('   4. Enable the RAG toggle');
-          }
-        }
-      } catch (error) {
-        console.error('Error verifying knowledge base:', error);
-      }
-    } else {
-      console.log('No knowledge base was created, skipping association.');
-    }
-
     // Store agent creation data for future reference
     await storeAgentMetadata(agentId, data);
 

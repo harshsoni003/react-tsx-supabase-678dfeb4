@@ -105,7 +105,7 @@ const AgentPage = () => {
   const [loadingAssociation, setLoadingAssociation] = useState(false);
   const [loadingVoiceUpdate, setLoadingVoiceUpdate] = useState(false);
 
-  // Helper to check if agent has knowledge base
+  // Helper to check if agent has knowledge base and get details
   const checkKnowledgeBase = (details: AgentDetails): boolean => {
     // Check the new structure: conversation_config.agent.prompt.knowledge_base array
     const promptKnowledgeBase = details?.conversation_config?.agent?.prompt?.knowledge_base;
@@ -125,6 +125,31 @@ const AgentPage = () => {
     return kbLocations.some(loc => 
       Array.isArray(loc) && loc.length > 0
     );
+  };
+
+  // Helper to get knowledge base details
+  const getKnowledgeBaseDetails = (details: AgentDetails) => {
+    const promptKnowledgeBase = details?.conversation_config?.agent?.prompt?.knowledge_base;
+    if (Array.isArray(promptKnowledgeBase) && promptKnowledgeBase.length > 0) {
+      const scrapedContent = promptKnowledgeBase.find(kb => kb.type === 'text' || kb.name?.includes('Content') || kb.name?.includes('FIRE-1'));
+      const urlBased = promptKnowledgeBase.find(kb => kb.type === 'url' || kb.name?.includes('URL-based'));
+      
+      return {
+        hasScrapedContent: !!scrapedContent,
+        hasUrlBased: !!urlBased,
+        scrapedContentName: scrapedContent?.name || 'Scraped Content',
+        urlBasedName: urlBased?.name || 'URL-based Knowledge',
+        totalKnowledgeBases: promptKnowledgeBase.length
+      };
+    }
+    
+    return {
+      hasScrapedContent: false,
+      hasUrlBased: false,
+      scrapedContentName: '',
+      urlBasedName: '',
+      totalKnowledgeBases: 0
+    };
   };
 
   // Load ElevenLabs widget script
@@ -247,45 +272,158 @@ const AgentPage = () => {
     fetchAgentDetails();
   }, [agentId, localAgent, toast]);
 
-  // Handle manual association of knowledge base
+  // Handle manual creation of dual knowledge base (both scraped content and URL-based)
   const handleAssociateKnowledgeBase = async () => {
     if (!agentId || !localAgent?.websiteUrl) return;
 
     setLoadingAssociation(true);
+    let scrapedKnowledgeBaseId: string | null = null;
+    let urlKnowledgeBaseId: string | null = null;
+    
     try {
       toast({
-        title: "Creating Knowledge Base",
-        description: "Creating knowledge base from website content...",
+        title: "Creating Knowledge Bases",
+        description: "Creating both scraped content and URL-based knowledge bases...",
       });
       
-      // First, create a knowledge base from the website URL
-      const knowledgeBaseId = await createWebsiteKnowledgeBase(
-        localAgent.websiteUrl,
-        localAgent.companyName || 'My Company'
-      );
+      // First, try to create scraped content knowledge base using FIRE-1 (always enabled for manual creation)
+      try {
+        const { firecrawlService } = await import('../services/firecrawlService');
+        
+        toast({
+          title: "Creating Knowledge Bases",
+          description: "Attempting intelligent website analysis with FIRE-1, falling back to standard extraction if needed...",
+        });
+        
+        const fire1Result = await firecrawlService.extractCompanyInformationWithFIRE1(localAgent.websiteUrl);
+        
+        if (fire1Result.success && fire1Result.content) {
+          // Create a text-based knowledge base from scraped content
+          const { getElevenLabsApiKey } = await import('../services/elevenlabs');
+          const apiKey = await getElevenLabsApiKey() || import.meta.env.VITE_ELEVENLABS_API_KEY;
+          
+          if (apiKey) {
+            const response = await fetch('https://api.elevenlabs.io/v1/convai/knowledge-base/text', {
+              method: 'POST',
+              headers: {
+                'xi-api-key': apiKey,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                text: fire1Result.content,
+                name: `${localAgent.companyName} FIRE-1 Extracted Content - ${new Date().toLocaleDateString()}`
+              }),
+            });
+            
+            if (response.ok) {
+              const result = await response.json();
+              scrapedKnowledgeBaseId = result.id || result.document_id;
+              console.log('✅ FIRE-1 knowledge base created successfully');
+            }
+          }
+        } else {
+          console.warn('FIRE-1 extraction returned no content, will try standard scraping');
+        }
+      } catch (error) {
+        console.warn('FIRE-1 extraction failed, will try standard scraping:', error);
+      }
+      
+      // Fallback to standard scraping if FIRE-1 didn't work
+      if (!scrapedKnowledgeBaseId) {
+        try {
+          const { firecrawlService } = await import('../services/firecrawlService');
+          const scrapeResult = await firecrawlService.scrapeWebsite(localAgent.websiteUrl);
+          
+          if (scrapeResult.success && scrapeResult.content) {
+            const { getElevenLabsApiKey } = await import('../services/elevenlabs');
+            const apiKey = await getElevenLabsApiKey() || import.meta.env.VITE_ELEVENLABS_API_KEY;
+            
+            if (apiKey) {
+              const response = await fetch('https://api.elevenlabs.io/v1/convai/knowledge-base/text', {
+                method: 'POST',
+                headers: {
+                  'xi-api-key': apiKey,
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  text: scrapeResult.content,
+                  name: `${localAgent.companyName} Scraped Content - ${new Date().toLocaleDateString()}`
+                }),
+              });
+              
+              if (response.ok) {
+                const result = await response.json();
+                scrapedKnowledgeBaseId = result.id || result.document_id;
+                console.log('✅ Standard scraping knowledge base created successfully');
+              }
+            }
+          }
+        } catch (error) {
+          console.warn('Standard scraping also failed:', error);
+        }
+      }
+      
+      // Create URL-based knowledge base
+      try {
+        urlKnowledgeBaseId = await createWebsiteKnowledgeBase(
+          localAgent.websiteUrl,
+          localAgent.companyName || 'My Company'
+        );
+      } catch (error) {
+        console.warn('Failed to create URL-based knowledge base:', error);
+      }
+      
+      if (!scrapedKnowledgeBaseId && !urlKnowledgeBaseId) {
+        throw new Error('Failed to create any knowledge bases');
+      }
       
       toast({
-        title: "Knowledge Base Created",
-        description: "Now associating with your agent...",
+        title: "Knowledge Bases Created",
+        description: `Created ${[scrapedKnowledgeBaseId, urlKnowledgeBaseId].filter(Boolean).length} knowledge base(s). Now associating with your agent...`,
       });
       
-      // Then associate the knowledge base with the agent
-      await associateKnowledgeBaseWithAgent(agentId, knowledgeBaseId);
+      // Associate both knowledge bases with the agent
+      const knowledgeBasesToAssociate = [];
+      
+      if (scrapedKnowledgeBaseId) {
+        knowledgeBasesToAssociate.push({
+          id: scrapedKnowledgeBaseId,
+          name: 'Scraped Content'
+        });
+      }
+      
+      if (urlKnowledgeBaseId) {
+        knowledgeBasesToAssociate.push({
+          id: urlKnowledgeBaseId,
+          name: 'URL-based Knowledge'
+        });
+      }
+      
+      // Associate each knowledge base with the agent
+      for (const kb of knowledgeBasesToAssociate) {
+        try {
+          await associateKnowledgeBaseWithAgent(agentId, kb.id);
+        } catch (error) {
+          console.warn(`Failed to associate ${kb.name}:`, error);
+        }
+      }
       
       // Refresh agent details to confirm association
       const updatedDetails = await getAgentDetails(agentId);
       setAgentDetails(updatedDetails);
       setHasKnowledgeBase(checkKnowledgeBase(updatedDetails));
       
+      const kbDetails = getKnowledgeBaseDetails(updatedDetails);
+      
       toast({
         title: "Success!",
-        description: "Knowledge base associated with agent successfully.",
+        description: `Created and associated ${kbDetails.totalKnowledgeBases} knowledge base source(s) with your agent.`,
       });
     } catch (error) {
-      console.error('Error associating knowledge base:', error);
+      console.error('Error creating knowledge bases:', error);
       toast({
-        title: "Association Failed",
-        description: "Failed to associate knowledge base. Try again or check ElevenLabs dashboard.",
+        title: "Creation Failed",
+        description: "Failed to create knowledge bases. Try again or check ElevenLabs dashboard.",
         variant: "destructive"
       });
     } finally {
@@ -436,17 +574,41 @@ const AgentPage = () => {
             {/* Knowledge Base Status */}
             {agentDetails && (
               <div className="mb-6 flex flex-col items-center">
-                {hasKnowledgeBase ? (
-                  <div className="flex items-center text-green-600 mb-2">
-                    <CheckCircle className="w-5 h-5 mr-2" />
-                    <span>Knowledge base is connected</span>
-                  </div>
-                ) : (
-                  <div className="flex items-center text-yellow-600 mb-2">
-                    <AlertCircle className="w-5 h-5 mr-2" />
-                    <span>No knowledge base detected</span>
-                  </div>
-                )}
+                {(() => {
+                  const kbDetails = getKnowledgeBaseDetails(agentDetails);
+                  
+                  if (kbDetails.totalKnowledgeBases === 0) {
+                    return (
+                      <div className="flex items-center text-yellow-600 mb-2">
+                        <AlertCircle className="w-5 h-5 mr-2" />
+                        <span>No knowledge base detected</span>
+                      </div>
+                    );
+                  }
+                  
+                  return (
+                    <div className="flex flex-col items-center space-y-2">
+                      <div className="flex items-center text-green-600 mb-2">
+                        <CheckCircle className="w-5 h-5 mr-2" />
+                        <span>Knowledge base connected ({kbDetails.totalKnowledgeBases} sources)</span>
+                      </div>
+                      
+                      {/* Show knowledge base types */}
+                      <div className="flex flex-wrap gap-2 justify-center">
+                        {kbDetails.hasScrapedContent && (
+                          <Badge variant="secondary" className="text-xs">
+                            📄 Scraped Content
+                          </Badge>
+                        )}
+                        {kbDetails.hasUrlBased && (
+                          <Badge variant="secondary" className="text-xs">
+                            🌐 URL-based Knowledge
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
                 
                 {!hasKnowledgeBase && !loadingAssociation && (
                   <Button 
@@ -456,14 +618,14 @@ const AgentPage = () => {
                     className="mt-2"
                   >
                     <BookOpen className="w-4 h-4 mr-2" />
-                    Attempt to fix knowledge base
+                    Create knowledge base
                   </Button>
                 )}
                 
                 {loadingAssociation && (
                   <div className="flex items-center mt-2">
                     <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                    <span className="text-sm">Associating knowledge base...</span>
+                    <span className="text-sm">Creating knowledge base...</span>
                   </div>
                 )}
               </div>

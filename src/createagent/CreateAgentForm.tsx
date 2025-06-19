@@ -3,8 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
-import { Bot, Building2, Globe, Mail, Loader2, ArrowLeft } from 'lucide-react';
+import { Bot, Building2, Globe, Mail, Loader2, ArrowLeft, Sparkles } from 'lucide-react';
 import { createAgent } from './services/agentCreationService';
 
 interface CreateAgentFormProps {
@@ -18,6 +19,7 @@ interface FormData {
   companyName: string;
   websiteUrl: string;
   agentName: string;
+  useFire1Extraction: boolean;
 }
 
 const CreateAgentForm = ({ onSuccess, onCancel, showBackButton = false }: CreateAgentFormProps) => {
@@ -25,7 +27,8 @@ const CreateAgentForm = ({ onSuccess, onCancel, showBackButton = false }: Create
     email: '',
     companyName: '',
     websiteUrl: '',
-    agentName: ''
+    agentName: '',
+    useFire1Extraction: false // Default to unchecked
   });
   const [isLoading, setIsLoading] = useState(false);
   const [loadingStep, setLoadingStep] = useState<string>('');
@@ -36,7 +39,7 @@ const CreateAgentForm = ({ onSuccess, onCancel, showBackButton = false }: Create
     navigate(-1);
   };
 
-  const updateFormData = (field: keyof FormData, value: string) => {
+  const updateFormData = (field: keyof FormData, value: string | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
@@ -111,7 +114,8 @@ const CreateAgentForm = ({ onSuccess, onCancel, showBackButton = false }: Create
     }
 
     setIsLoading(true);
-    setLoadingStep('Scraping website content...');
+    const extractionMethod = formData.useFire1Extraction ? 'FIRE-1 intelligent extraction' : 'standard website scraping';
+    setLoadingStep(`Starting ${extractionMethod}...`);
 
     try {
       // Improved URL processing
@@ -133,11 +137,11 @@ const CreateAgentForm = ({ onSuccess, onCancel, showBackButton = false }: Create
         agentName: formData.agentName || `${formData.companyName} Assistant`
       };
 
-      setLoadingStep('Creating knowledge base...');
+      setLoadingStep('Creating dual knowledge bases...');
       // Small delay to show the step change
       await new Promise(resolve => setTimeout(resolve, 500));
       
-      setLoadingStep('Building AI agent...');
+      setLoadingStep('Building AI agent with knowledge...');
       const agentId = await createAgent(agentData);
 
       // Reset form
@@ -145,12 +149,14 @@ const CreateAgentForm = ({ onSuccess, onCancel, showBackButton = false }: Create
         email: '',
         companyName: '',
         websiteUrl: '',
-        agentName: ''
+        agentName: '',
+        useFire1Extraction: false
       });
 
+      const extractionType = formData.useFire1Extraction ? "FIRE-1 intelligent extraction" : "standard website scraping";
       toast({
         title: "Agent Created Successfully!",
-        description: "Your AI agent has been created with website knowledge.",
+        description: `Your AI agent has been created with dual knowledge bases using ${extractionType} and URL-based knowledge.`,
       });
 
       // Call success callback if provided
@@ -282,6 +288,25 @@ const CreateAgentForm = ({ onSuccess, onCancel, showBackButton = false }: Create
             required
             className="mt-1"
           />
+        </div>
+
+        {/* FIRE-1 Extraction Checkbox */}
+        <div className="flex items-start space-x-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+          <Checkbox
+            id="useFire1Extraction"
+            checked={formData.useFire1Extraction}
+            onCheckedChange={(checked) => updateFormData('useFire1Extraction', checked === true)}
+            className="mt-1"
+          />
+          <div className="flex-1">
+            <Label htmlFor="useFire1Extraction" className="text-sm font-medium text-gray-700 cursor-pointer flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-blue-600" />
+              Use deep extraction of {formData.websiteUrl || "website URL"}
+            </Label>
+            <p className="text-xs text-gray-600 mt-1">
+              Note: May take longer to process depending on website data <span className="text-[15px] text-red-500">(20 sec to 5 min)</span>.
+            </p>
+          </div>
         </div>
 
         {/* Action Buttons */}
