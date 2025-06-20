@@ -320,7 +320,7 @@ const extractCompanyInformationFromFIRE1 = (fire1Data: any): CompanyInformation 
 // Generate a default first message for the agent
 const generateFirstMessage = (data: AgentCreationData, companyInfo: CompanyInformation): string => {
   const valueProposition = companyInfo.valueProposition || "what is your name?";
-  return `Hi! I'm Sarah from ${data.companyName}. ${valueProposition}`;
+  return `Hi! I'm Sarah from ${data.companyName}. ${data.CompanyvalueProposition}`;
 };
 
 
