@@ -159,6 +159,76 @@ const AgentPage = () => {
     };
   };
 
+  // Helper to extract website URL from knowledge base
+  const extractWebsiteUrlFromKnowledgeBase = async (details: AgentDetails): Promise<string> => {
+    try {
+      console.log('Attempting to extract website URL from knowledge base...');
+      const promptKnowledgeBase = details?.conversation_config?.agent?.prompt?.knowledge_base;
+      if (Array.isArray(promptKnowledgeBase) && promptKnowledgeBase.length > 0) {
+        console.log('Found knowledge bases:', promptKnowledgeBase);
+        
+        // Look for URL-based knowledge base
+        const urlBased = promptKnowledgeBase.find(kb => kb.type === 'url' || kb.name?.includes('URL-based') || kb.name?.includes('Website'));
+        
+        if (urlBased?.id) {
+          console.log('Found URL-based knowledge base:', urlBased);
+          
+          // Fetch the knowledge base details to get the URL
+          const apiKey = await getElevenLabsApiKey();
+          if (apiKey) {
+            try {
+              // Try different potential API endpoints for knowledge base details
+              const endpoints = [
+                `https://api.elevenlabs.io/v1/convai/knowledge-base/${urlBased.id}`,
+                `https://api.elevenlabs.io/v1/knowledge-base/${urlBased.id}`,
+                `https://api.elevenlabs.io/v1/convai/knowledge-bases/${urlBased.id}`
+              ];
+              
+              for (const endpoint of endpoints) {
+                try {
+                  console.log('Trying endpoint:', endpoint);
+                  const response = await fetch(endpoint, {
+                    headers: {
+                      'xi-api-key': apiKey,
+                      'Content-Type': 'application/json',
+                    },
+                  });
+                  
+                  if (response.ok) {
+                    const kbDetails = await response.json();
+                    console.log('Knowledge base details from', endpoint, ':', kbDetails);
+                    
+                    // The URL might be in different fields depending on the API response structure
+                    const websiteUrl = kbDetails.url || kbDetails.source_url || kbDetails.data?.url || kbDetails.data?.source_url || kbDetails.original_url;
+                    if (websiteUrl) {
+                      console.log('✅ Extracted website URL from knowledge base:', websiteUrl);
+                      return websiteUrl;
+                    }
+                  } else {
+                    console.log('Endpoint failed with status:', response.status);
+                  }
+                } catch (endpointError) {
+                  console.log('Endpoint error:', endpointError);
+                }
+              }
+            } catch (error) {
+              console.warn('Failed to fetch knowledge base details:', error);
+            }
+          }
+        } else {
+          console.log('No URL-based knowledge base found');
+        }
+      } else {
+        console.log('No knowledge bases found in agent details');
+      }
+    } catch (error) {
+      console.warn('Error extracting website URL from knowledge base:', error);
+    }
+    
+    console.log('Could not extract website URL, returning empty string');
+    return '';
+  };
+
   // Load ElevenLabs widget script
   useEffect(() => {
     // Check if script already exists
@@ -243,13 +313,14 @@ const AgentPage = () => {
         setHasKnowledgeBase(checkKnowledgeBase(details));
         
         // If we don't have createdAgent data from navigation state,
-        // create a minimal version from the fetched details
+        // create a version from the fetched details with extracted website URL
         if (!localAgent) {
+          const extractedWebsiteUrl = await extractWebsiteUrlFromKnowledgeBase(details);
           setLocalAgent({
             agentId: agentId,
             agentName: details.name || "Agent",
             companyName: "",
-            websiteUrl: "",
+            websiteUrl: extractedWebsiteUrl,
             email: ""
           });
         }
