@@ -122,7 +122,7 @@ class FireCrawlService {
             },
             description: "Social media account links or usernames"
           },
-          "Value proposition": {
+          "Company Value proposition": {
             type: "string",
             description: "The company's main value proposition or unique selling point"
           },
@@ -152,7 +152,7 @@ class FireCrawlService {
           "Company Email and contact details",
           "Company FAQ",
           "Company Socials accounts",
-          "Value proposition",
+          "Company Value proposition",
           "Problem Company is solving",
           "Company Solution to the problem",
           "Company CTA",
@@ -162,7 +162,7 @@ class FireCrawlService {
 
       const extractPrompt = `You are an expert extraction algorithm.
 Only extract relevant information from the text.
-If you don't know anything then just add "use your Agent knowledge base to find the information". Do not make-up them yourself, do not hallucinate.
+If you don't know anything then Do not make-up them yourself, do not hallucinate.
 
 Your task is to extract company information in below format:
 
