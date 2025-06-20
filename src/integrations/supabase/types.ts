@@ -147,12 +147,203 @@ export type Database = {
         }
         Relationships: []
       }
+      waitlist_emails: {
+        Row: {
+          id: string
+          email: string
+          created_at: string
+          status: string
+          contacted_at: string | null
+          notes: string | null
+        }
+        Insert: {
+          id?: string
+          email: string
+          created_at?: string
+          status?: string
+          contacted_at?: string | null
+          notes?: string | null
+        }
+        Update: {
+          id?: string
+          email?: string
+          created_at?: string
+          status?: string
+          contacted_at?: string | null
+          notes?: string | null
+        }
+        Relationships: []
+      }
+      access_codes: {
+        Row: {
+          id: string
+          code: string
+          description: string | null
+          max_uses: number
+          current_uses: number
+          is_active: boolean
+          created_at: string
+          expires_at: string | null
+          created_by: string | null
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          code: string
+          description?: string | null
+          max_uses?: number
+          current_uses?: number
+          is_active?: boolean
+          created_at?: string
+          expires_at?: string | null
+          created_by?: string | null
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          code?: string
+          description?: string | null
+          max_uses?: number
+          current_uses?: number
+          is_active?: boolean
+          created_at?: string
+          expires_at?: string | null
+          created_by?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      access_code_usage: {
+        Row: {
+          id: string
+          access_code_id: string
+          used_at: string
+          user_email: string | null
+          ip_address: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          id?: string
+          access_code_id: string
+          used_at?: string
+          user_email?: string | null
+          ip_address?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          id?: string
+          access_code_id?: string
+          used_at?: string
+          user_email?: string | null
+          ip_address?: string | null
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "access_code_usage_access_code_id_fkey"
+            columns: ["access_code_id"]
+            isOneToOne: false
+            referencedRelation: "access_codes"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      agent_visit_limits: {
+        Row: {
+          id: string
+          agent_id: string
+          max_visits: number
+          current_visits: number
+          is_active: boolean
+          created_at: string
+          updated_at: string
+          notes: string | null
+        }
+        Insert: {
+          id?: string
+          agent_id: string
+          max_visits?: number
+          current_visits?: number
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+          notes?: string | null
+        }
+        Update: {
+          id?: string
+          agent_id?: string
+          max_visits?: number
+          current_visits?: number
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+          notes?: string | null
+        }
+        Relationships: []
+      }
+      agent_visits: {
+        Row: {
+          id: string
+          agent_id: string
+          visited_at: string
+          ip_address: string | null
+          user_agent: string | null
+          referrer: string | null
+          session_id: string | null
+          blocked: boolean
+        }
+        Insert: {
+          id?: string
+          agent_id: string
+          visited_at?: string
+          ip_address?: string | null
+          user_agent?: string | null
+          referrer?: string | null
+          session_id?: string | null
+          blocked?: boolean
+        }
+        Update: {
+          id?: string
+          agent_id?: string
+          visited_at?: string
+          ip_address?: string | null
+          user_agent?: string | null
+          referrer?: string | null
+          session_id?: string | null
+          blocked?: boolean
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      validate_and_use_access_code: {
+        Args: {
+          p_code: string
+          p_user_email?: string
+          p_ip_address?: string
+          p_user_agent?: string
+        }
+        Returns: Json
+      }
+      check_and_record_agent_visit: {
+        Args: {
+          p_agent_id: string
+          p_ip_address?: string
+          p_user_agent?: string
+          p_referrer?: string
+          p_session_id?: string
+        }
+        Returns: Json
+      }
+      get_agent_visit_stats: {
+        Args: {
+          p_agent_id: string
+        }
+        Returns: Json
+      }
     }
     Enums: {
       [_ in never]: never

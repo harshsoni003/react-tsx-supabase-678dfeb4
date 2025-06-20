@@ -35,8 +35,12 @@ const WebsiteIframe: React.FC<WebsiteIframeProps> = ({
   const [isLoading, setIsLoading] = useState(true);
   const [retryCount, setRetryCount] = useState(0);
   const [useProxy, setUseProxy] = useState(false);
+  const [autoRetryInProgress, setAutoRetryInProgress] = useState(false);
+  const [hasAutoRetried, setHasAutoRetried] = useState(false);
+  const [showRetryProcess, setShowRetryProcess] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const timeoutRef = useRef<NodeJS.Timeout>();
+  const autoRetryTimeoutRef = useRef<NodeJS.Timeout>();
 
   // Clean and validate URL
   const cleanUrl = (url: string): string => {
@@ -64,6 +68,9 @@ const WebsiteIframe: React.FC<WebsiteIframeProps> = ({
     setLoadError(false);
     setIsLoading(true);
     setRetryCount(0);
+    setHasAutoRetried(false);
+    setAutoRetryInProgress(false);
+    setShowRetryProcess(false);
     
     // If domain is likely blocked, show warning but still try
     if (isLikelyBlocked) {
@@ -71,11 +78,11 @@ const WebsiteIframe: React.FC<WebsiteIframeProps> = ({
     }
     
     // Set a timeout to detect if iframe fails to load
-    // Shorter timeout for known blocked domains
-    const timeout = isLikelyBlocked ? 5000 : 10000;
+    // Shorter timeout for known blocked domains to trigger auto-retry faster
+    const timeout = isLikelyBlocked ? 2000 : 4000; // Faster timeouts for seamless experience
     timeoutRef.current = setTimeout(() => {
       if (isLoading) {
-        console.warn('Iframe load timeout, assuming blocked by security policy');
+        console.warn('Iframe load timeout, silently trying proxy...');
         handleLoadError();
       }
     }, timeout);
@@ -84,28 +91,66 @@ const WebsiteIframe: React.FC<WebsiteIframeProps> = ({
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
       }
+      if (autoRetryTimeoutRef.current) {
+        clearTimeout(autoRetryTimeoutRef.current);
+      }
     };
   }, [src, useProxy, isLikelyBlocked]);
 
   const handleLoadError = () => {
     console.error('Iframe failed to load:', finalSrc);
-    setLoadError(true);
-    setIsLoading(false);
-    onLoadError?.();
     
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
     }
+
+    // Auto-retry with proxy if we haven't tried yet and it's not already a proxy URL
+    if (!hasAutoRetried && !useProxy && retryCount === 0) {
+      console.log('Auto-retrying with proxy service silently...');
+      setAutoRetryInProgress(true);
+      setHasAutoRetried(true);
+      
+      // Immediately try proxy without showing the retry process to user
+      autoRetryTimeoutRef.current = setTimeout(() => {
+        setRetryCount(1);
+        setUseProxy(true);
+        setLoadError(false);
+        // Keep isLoading true to maintain seamless loading appearance
+        setAutoRetryInProgress(false);
+        
+        // Force iframe reload with proxy
+        if (iframeRef.current) {
+          const proxyUrl = proxyServices[Math.min(1, proxyServices.length - 1)];
+          console.log('Silently trying proxy URL:', proxyUrl);
+          iframeRef.current.src = proxyUrl;
+        }
+      }, 500); // Shorter delay for seamless experience
+      
+      return;
+    }
+
+    // If auto-retry failed or we've already tried, show error
+    setLoadError(true);
+    setIsLoading(false);
+    setAutoRetryInProgress(false);
+    onLoadError?.();
   };
 
   const handleLoadSuccess = () => {
     console.log('Iframe loaded successfully:', finalSrc);
+    if (useProxy) {
+      console.log('✓ Proxy service worked successfully (hidden from user)');
+    }
     setLoadError(false);
     setIsLoading(false);
+    setAutoRetryInProgress(false);
     onLoadSuccess?.();
     
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
+    }
+    if (autoRetryTimeoutRef.current) {
+      clearTimeout(autoRetryTimeoutRef.current);
     }
   };
 
@@ -193,24 +238,13 @@ const WebsiteIframe: React.FC<WebsiteIframeProps> = ({
                       className="w-full"
                     >
                       <RefreshCw className="w-4 h-4 mr-2" />
-                      Try Again {useProxy ? '(with proxy)' : ''}
+                      Try Again
                     </Button>
                   )}
-                  
-                  <Button 
-                    onClick={() => setUseProxy(!useProxy)}
-                    variant="outline"
-                    size="sm"
-                    className="w-full text-xs"
-                  >
-                    <Globe className="w-3 h-3 mr-1" />
-                    {useProxy ? 'Try Direct Connection' : 'Try Proxy Connection'}
-                  </Button>
                 </div>
 
                 <div className="text-xs text-gray-500 text-center mt-4">
                   <p>Website URL: {cleanUrl(src)}</p>
-                  {useProxy && <p className="text-orange-600">Using proxy service</p>}
                 </div>
               </div>
             )}
@@ -227,9 +261,7 @@ const WebsiteIframe: React.FC<WebsiteIframeProps> = ({
           <div className="text-center">
             <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-2 text-blue-600" />
             <p className="text-sm text-gray-600">Loading website...</p>
-            {useProxy && (
-              <p className="text-xs text-orange-600 mt-1">Using proxy service</p>
-            )}
+            {/* Hide proxy-related messages from user - keep it seamless */}
           </div>
         </div>
       )}

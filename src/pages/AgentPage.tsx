@@ -26,6 +26,7 @@ import {
   getSuccessfulModelFormat
 } from '../createagent/services/agentCreationService';
 import { getElevenLabsApiKey } from '../services/elevenlabs';
+import { supabase } from '@/integrations/supabase/client';
 import WebsiteIframe from '@/components/ui/WebsiteIframe';
 
 interface AgentDetails {
@@ -111,6 +112,9 @@ const AgentPage = () => {
   const [loadingAssociation, setLoadingAssociation] = useState(false);
   const [loadingVoiceUpdate, setLoadingVoiceUpdate] = useState(false);
   const [loadingLLM, setLoadingLLM] = useState(false);
+  const [isVisitAllowed, setIsVisitAllowed] = useState<boolean | null>(null);
+  const [visitStats, setVisitStats] = useState<any>(null);
+  const [isCheckingVisit, setIsCheckingVisit] = useState(true);
 
   // Helper to check if agent has knowledge base and get details
   const checkKnowledgeBase = (details: AgentDetails): boolean => {
@@ -157,6 +161,79 @@ const AgentPage = () => {
       urlBasedName: '',
       totalKnowledgeBases: 0
     };
+  };
+
+  // Function to check and record agent visit
+  const checkAgentVisit = async (agentId: string) => {
+    try {
+      setIsCheckingVisit(true);
+      
+      // Generate a simple session ID for this browser session
+      let sessionId = localStorage.getItem('agent_session_id');
+      if (!sessionId) {
+        sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        localStorage.setItem('agent_session_id', sessionId);
+      }
+
+      // Call Supabase function to check and record visit
+      const { data, error } = await supabase.rpc('check_and_record_agent_visit', {
+        p_agent_id: agentId,
+        p_ip_address: null, // We can't get real IP on client side
+        p_user_agent: navigator.userAgent,
+        p_referrer: document.referrer || null,
+        p_session_id: sessionId
+      });
+
+      if (error) {
+        console.error('Error checking agent visit:', error);
+        // On error, allow the visit but show warning
+        setIsVisitAllowed(true);
+        toast({
+          title: "Warning",
+          description: "Could not verify visit limits. Proceeding with agent access.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      const result = data as { 
+        allowed: boolean; 
+        current_visits: number; 
+        max_visits: number; 
+        remaining_visits: number; 
+        blocked: boolean; 
+        message: string; 
+      };
+
+      setVisitStats(result);
+      setIsVisitAllowed(result.allowed);
+
+      if (!result.allowed) {
+        toast({
+          title: "Access Limit Reached",
+          description: `This agent has reached its visit limit (${result.max_visits} visits). Contact the agent owner for more access.`,
+          variant: "destructive"
+        });
+      } else if (result.remaining_visits <= 2) {
+        toast({
+          title: "Limited Access Remaining",
+          description: `${result.remaining_visits} visits remaining for this agent.`,
+          variant: "destructive"
+        });
+      }
+
+    } catch (error) {
+      console.error('Unexpected error checking agent visit:', error);
+      // On error, allow the visit but show warning
+      setIsVisitAllowed(true);
+      toast({
+        title: "Warning",
+        description: "Could not verify visit limits. Proceeding with agent access.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsCheckingVisit(false);
+    }
   };
 
   // Helper to extract website URL from knowledge base
@@ -297,6 +374,13 @@ const AgentPage = () => {
 
     requestMicrophonePermission();
   }, [isWidgetLoaded, micPermissionRequested, toast]);
+
+  // Check visit limits when page loads
+  useEffect(() => {
+    if (agentId) {
+      checkAgentVisit(agentId);
+    }
+  }, [agentId]);
 
   // Load agent details if not provided in location state
   useEffect(() => {
@@ -664,6 +748,97 @@ const AgentPage = () => {
         <div className="p-8 text-center">
           <h1 className="text-2xl font-bold mb-4">Agent Not Found</h1>
           <p>Unable to find the requested agent.</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show loading state while checking visit limits
+  if (isCheckingVisit) {
+    return (
+      <div className="container mx-auto max-w-4xl py-8">
+        <div className="flex flex-col items-center justify-center p-8">
+          <img 
+            src="/DYOTA_logo-removebg-preview.png" 
+            alt="Checking Access" 
+            className="w-36 h-36 animate-pulse mb-6" 
+          />
+          <div className="flex items-center">
+            <Loader2 className="w-6 h-6 animate-spin mr-3" />
+            <span className="text-xl font-semibold">Checking access limits...</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show blocked access UI if visit limit reached
+  if (isVisitAllowed === false) {
+    return (
+      <div className="container mx-auto max-w-4xl py-8">
+        <div className="flex flex-col items-center justify-center p-8">
+          <div className="text-center mb-8">
+            <div className="mx-auto w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mb-6">
+              <AlertCircle className="w-10 h-10 text-red-600" />
+            </div>
+            <h1 className="text-3xl font-bold text-red-600 mb-4">Access Limit Reached</h1>
+            <p className="text-lg text-gray-600 mb-6">
+              This agent has reached its visit limit ({visitStats?.max_visits || 10} visits).
+            </p>
+            
+            {visitStats && (
+              <Card className="max-w-md mx-auto mb-6">
+                <CardHeader>
+                  <CardTitle className="text-lg">Visit Statistics</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <div className="flex justify-between">
+                    <span>Total visits:</span>
+                    <span className="font-semibold">{visitStats.current_visits}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Maximum allowed:</span>
+                    <span className="font-semibold">{visitStats.max_visits}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Remaining:</span>
+                    <span className="font-semibold text-red-600">{visitStats.remaining_visits}</span>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+            
+            <div className="space-y-4">
+              <p className="text-gray-600">
+                Contact the agent owner to request additional access or create your own agent.
+              </p>
+              
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <Button asChild>
+                  <Link to="/create-agent">
+                    <Bot className="w-4 h-4 mr-2" />
+                    Create Your Own Agent
+                  </Link>
+                </Button>
+                
+                <Button variant="outline" asChild>
+                  <Link to="/">
+                    <ExternalLink className="w-4 h-4 mr-2" />
+                    Back to Home
+                  </Link>
+                </Button>
+              </div>
+            </div>
+          </div>
+          
+          {/* Show logo at bottom */}
+          <div className="mt-8">
+            <img 
+              src="/DYOTA_logo-removebg-preview.png" 
+              alt="DYOTA Logo" 
+              className="w-24 h-24 opacity-50" 
+            />
+          </div>
         </div>
       </div>
     );

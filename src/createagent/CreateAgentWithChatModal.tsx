@@ -18,6 +18,7 @@ import {
   ExternalLink
 } from 'lucide-react';
 import CreateAgentForm from './CreateAgentForm';
+import RateLimitWarning from './RateLimitWarning';
 import { getAgentDetails } from './services/agentCreationService';
 import WebsiteIframe from '@/components/ui/WebsiteIframe';
 
@@ -52,7 +53,7 @@ interface AgentDetails {
 }
 
 const CreateAgentWithChatModal = ({ isOpen, onClose, onViewOnWebsite }: CreateAgentWithChatModalProps) => {
-  const [currentStep, setCurrentStep] = useState<'create' | 'chat'>('create');
+  const [currentStep, setCurrentStep] = useState<'rate-limit' | 'create' | 'chat'>('rate-limit');
   const [createdAgent, setCreatedAgent] = useState<CreatedAgentData | null>(null);
   const [agentDetails, setAgentDetails] = useState<AgentDetails | null>(null);
   const [isLoadingAgent, setIsLoadingAgent] = useState(false);
@@ -131,6 +132,10 @@ const CreateAgentWithChatModal = ({ isOpen, onClose, onViewOnWebsite }: CreateAg
     requestMicrophonePermission();
   }, [isWidgetLoaded, micPermissionRequested, createdAgent, toast]);
 
+  const handleContinueFromRateLimit = () => {
+    setCurrentStep('create');
+  };
+
   const handleAgentCreated = async (agentId: string, agentData: any) => {
     // Store the created agent data
     const agentInfo: CreatedAgentData = {
@@ -172,9 +177,13 @@ const CreateAgentWithChatModal = ({ isOpen, onClose, onViewOnWebsite }: CreateAg
     setAgentDetails(null);
   };
 
+  const handleBackToRateLimit = () => {
+    setCurrentStep('rate-limit');
+  };
+
   const handleCloseModal = () => {
     // Reset state
-    setCurrentStep('create');
+    setCurrentStep('rate-limit');
     setCreatedAgent(null);
     setAgentDetails(null);
     onClose();
@@ -187,13 +196,37 @@ const CreateAgentWithChatModal = ({ isOpen, onClose, onViewOnWebsite }: CreateAg
     }
   };
 
+  const renderRateLimitStep = () => (
+    <RateLimitWarning 
+      onContinue={handleContinueFromRateLimit}
+      onCancel={handleCloseModal}
+    />
+  );
+
   const renderCreationStep = () => (
     <>
-      
+      <DialogHeader>
+        <div className="flex items-center space-x-2">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={handleBackToRateLimit}
+            className="p-1"
+          >
+            <ArrowLeft className="w-4 h-4" />
+          </Button>
+          <div>
+            <DialogTitle>Create Your Voice Agent</DialogTitle>
+            <DialogDescription>
+              Fill in the details to create your custom voice agent
+            </DialogDescription>
+          </div>
+        </div>
+      </DialogHeader>
       
       <CreateAgentForm 
         onSuccess={handleAgentCreated}
-        onCancel={handleCloseModal}
+        onCancel={handleBackToRateLimit}
       />
     </>
   );
@@ -366,7 +399,11 @@ const CreateAgentWithChatModal = ({ isOpen, onClose, onViewOnWebsite }: CreateAg
             </div>
           </div>
         ) : (
-          currentStep === 'create' ? renderCreationStep() : renderChatStep()
+          <>
+            {currentStep === 'rate-limit' && renderRateLimitStep()}
+            {currentStep === 'create' && renderCreationStep()}
+            {currentStep === 'chat' && renderChatStep()}
+          </>
         )}
       </DialogContent>
     </Dialog>
