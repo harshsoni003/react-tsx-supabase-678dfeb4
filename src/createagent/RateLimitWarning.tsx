@@ -195,15 +195,7 @@ const RateLimitWarning = ({ onContinue, onCancel, showBackButton = false }: Rate
               />
             </div>
 
-            <div className="bg-blue-50 p-3 rounded-lg text-sm">
-              <p className="font-medium text-blue-800 mb-2">What happens next?</p>
-              <ul className="text-blue-700 space-y-1">
-                <li>• We'll contact you within 24 hours</li>
-                <li>• Priority access to agent creation</li>
-                <li>• Free setup assistance</li>
-                <li>• No spam or unnecessary emails</li>
-              </ul>
-            </div>
+           
 
             <div className="flex gap-3">
               {(onCancel || showBackButton) && (
