@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Mail, Loader2, Key } from 'lucide-react';
+import { Mail, Loader2, Key, Calendar } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
 interface RateLimitWarningProps {
@@ -220,12 +220,12 @@ const RateLimitWarning = ({ onContinue, onCancel, showBackButton = false }: Rate
               <Button
                 type="submit"
                 disabled={isSubmitting}
-                className="flex-1 bg-blue-600 hover:bg-blue-700"
+                className="flex-1 bg-black hover:bg-gray-800 text-white"
               >
                 {isSubmitting ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Joining...
+                    Processing...
                   </>
                 ) : (
                   <>
@@ -236,6 +236,18 @@ const RateLimitWarning = ({ onContinue, onCancel, showBackButton = false }: Rate
               </Button>
             </div>
           </form>
+
+          <div className="flex justify-center">
+            <a 
+              href="https://cal.com/voicebolt/15min" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="flex items-center text-sm text-blue-600 hover:text-blue-800 hover:underline"
+            >
+              <Calendar className="w-4 h-4 mr-1" />
+              Schedule a 15-minute consultation
+            </a>
+          </div>
 
           <div className="pt-3 border-t border-gray-200">
             <div className="text-center">
