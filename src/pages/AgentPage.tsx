@@ -783,7 +783,7 @@ const AgentPage = () => {
             </div>
             <h1 className="text-3xl font-bold text-red-600 mb-4">Access Limit Reached</h1>
             <p className="text-lg text-gray-600 mb-6">
-              This agent has reached its visit limit ({visitStats?.max_visits || 10} visits).
+              This agent has reached its visit limit ({visitStats?.max_visits || 30} visits).
             </p>
             
             {visitStats && (

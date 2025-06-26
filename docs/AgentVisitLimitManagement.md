@@ -5,15 +5,15 @@ This document provides SQL queries to manage agent visit limits in Supabase.
 ## Database Structure
 
 ### Tables Created:
-- `agent_visit_limits`: Stores visit limits for each agent (default: 10 visits)
+- `agent_visit_limits`: Stores visit limits for each agent (default: 30 visits)
 - `agent_visits`: Tracks individual visits with metadata
 
 ## Default Behavior
 
 When a user visits an agent URL (e.g., `http://localhost:8080/agent/agent_01jy613388e0vstqwm4z7w41j6`):
-1. System automatically creates a visit limit record (default: 10 visits)
+1. System automatically creates a visit limit record (default: 30 visits)
 2. Each visit is recorded and counted
-3. After 10 visits, access is blocked with a professional error page
+3. After 30 visits, access is blocked with a professional error page
 4. All visits are logged with timestamp, user agent, referrer, and session ID
 
 ## SQL Queries for Agent Visit Management

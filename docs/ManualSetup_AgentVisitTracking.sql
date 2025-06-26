@@ -5,7 +5,7 @@
 CREATE TABLE IF NOT EXISTS public.agent_visit_limits (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     agent_id VARCHAR(255) NOT NULL UNIQUE,
-    max_visits INTEGER DEFAULT 10,
+    max_visits INTEGER DEFAULT 30,
     current_visits INTEGER DEFAULT 0,
     is_active BOOLEAN DEFAULT true,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -85,7 +85,7 @@ BEGIN
     -- If no limit exists, create default one
     IF NOT FOUND THEN
         INSERT INTO public.agent_visit_limits (agent_id, max_visits, current_visits, is_active)
-        VALUES (p_agent_id, 10, 0, true)
+        VALUES (p_agent_id, 30, 0, true)
         RETURNING * INTO v_visit_limit;
     END IF;
 
@@ -158,9 +158,9 @@ BEGIN
     IF NOT FOUND THEN
         RETURN json_build_object(
             'agent_id', p_agent_id,
-            'max_visits', 10,
+            'max_visits', 30,
             'current_visits', 0,
-            'remaining_visits', 10,
+            'remaining_visits', 30,
             'total_visits', 0,
             'blocked_visits', 0,
             'today_visits', 0,

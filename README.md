@@ -1,3 +1,13 @@
+# Conversational AI Agent Starter Kit
+
+## 🚀 Elevator Pitch
+
+This project is a boilerplate for building and deploying conversational AI agents. It provides a complete setup with a React and TypeScript frontend, a Supabase backend, and seamless integration with ElevenLabs for high-quality text-to-speech and voice AI.
+
+With this starter kit, you can quickly create and customize your own AI agents, manage user authentication, and provide a dashboard for users to view call history, analytics, and live transcriptions. It's a solid foundation for anyone looking to build applications powered by voice-based conversational AI, from interactive personal assistants to sophisticated customer service bots.
+
+---
+
 Yes — you *can fetch your full call history directly from ElevenLabs* using your API key and the **History API**, then display it in your MVP dashboard. Here's how to do it:
 
 ---
