@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useMemo } from 'react'
 import { ArrowRight, Phone, Clock, PhoneCall, PhoneOff } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { AnimatedGroup } from '@/components/ui/animated-group'
@@ -33,6 +33,11 @@ interface NewHeroSectionProps {
 }
 
 export const NewHeroSection = ({ onCreateAgent, onTalkWithBot, isLoggedIn = false, onSignOut }: NewHeroSectionProps) => {
+    const currentMonth = useMemo(() => {
+        const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+        return months[new Date().getMonth()];
+    }, []);
+
     return (
         <>
             <Navbar onCreateAgent={onCreateAgent} isLoggedIn={isLoggedIn} onSignOut={onSignOut} />
@@ -113,7 +118,7 @@ export const NewHeroSection = ({ onCreateAgent, onTalkWithBot, isLoggedIn = fals
                                                 <div className="absolute size-6 rounded-full animate-ping-slow animation-delay-300" style={{ backgroundColor: 'rgba(227, 168, 56, 0.3)' }}></div>
                                                 <div className="absolute size-8 rounded-full animate-ping-slow animation-delay-600" style={{ backgroundColor: 'rgba(227, 168, 56, 0.1)' }}></div>
                                             </div>
-                                            <span className="text-foreground text-sm font-medium">Only 9 spots left this June</span>
+                                            <span className="text-foreground text-sm font-medium">Only 5 spots left this {currentMonth}</span>
                                         </div>
                                         <span className="dark:border-background block h-4 w-0.5 border-l bg-white dark:bg-zinc-700"></span>
 
